@@ -13,7 +13,7 @@ void Mesh::add_face(const vector<int> &cur_vert) {
         int v0 = cur_vert[0], v1 = cur_vert[1], v2 = cur_vert[2];
 
         faces.push_back(Mesh_Face(v0, v1, v2));     // First face
-
+        
         // all subsequent faces
         for( size_t i = 3; i < cur_vert.size(); i++ ) {
             v1 = v2; v2 = cur_vert[i];
@@ -21,7 +21,6 @@ void Mesh::add_face(const vector<int> &cur_vert) {
         }
     }
     else if(cur_vert.size() == 3) {
-        Mesh_Face mf = curr_vert[0];
         faces.push_back(Mesh_Face(cur_vert[0], cur_vert[1], cur_vert[2]));
     }
 }
@@ -65,8 +64,8 @@ bool Mesh::load_obj(QString filename) {
 
 
     for (Mesh_Face face : faces) {
-
-        face.faceNormal = face.vert[0] -
+        
+        face.faceNormal = face.vert[0] - 
     }
 
     cout << "face_cnt=" << face_cnt << endl;

@@ -16,11 +16,22 @@ struct Mesh_Face {
         vert[0] = v0; vert[1] = v1; vert[2] = v2;
     }
     long vert[3]; // indices (in the vertex array) of all vertices (mesh_vertex)
+    vec3 faceNormal;
+};
+
+struct Mesh_Vertex {
+
+    Mesh_Vertex(int x, int y, int z) {
+        position = QVector3(x,y,z);
+    }
+    vec3 normal;
 };
 
 struct Mesh {
-    vector<QVector3D> vertices; // List of shared verticies.
     vector<Mesh_Face> faces; // Mesh faces.
+    vector<Mesh_Vertex> vertices; //Mesh Vertices
+    vector<vector<int>> verticesEdgeAdj;
+
     QOpenGLBuffer vertexBuffer, baryBuffer;
 
 
