@@ -16,15 +16,16 @@ struct Mesh_Face {
         vert[0] = v0; vert[1] = v1; vert[2] = v2;
     }
     long vert[3]; // indices (in the vertex array) of all vertices (mesh_vertex)
-    vec3 faceNormal;
+    QVector3D faceNormal;
 };
 
 struct Mesh_Vertex {
 
     Mesh_Vertex(int x, int y, int z) {
-        position = QVector3(x,y,z);
+        position = QVector3D(x,y,z);
     }
-    vec3 normal;
+    QVector3D position;
+    QVector3D normal;
 };
 
 struct Mesh {

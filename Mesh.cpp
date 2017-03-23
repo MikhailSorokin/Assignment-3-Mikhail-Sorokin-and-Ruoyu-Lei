@@ -13,7 +13,7 @@ void Mesh::add_face(const vector<int> &cur_vert) {
         int v0 = cur_vert[0], v1 = cur_vert[1], v2 = cur_vert[2];
 
         faces.push_back(Mesh_Face(v0, v1, v2));     // First face
-
+        
         // all subsequent faces
         for( size_t i = 3; i < cur_vert.size(); i++ ) {
             v1 = v2; v2 = cur_vert[i];
@@ -21,7 +21,6 @@ void Mesh::add_face(const vector<int> &cur_vert) {
         }
     }
     else if(cur_vert.size() == 3) {
-        Mesh_Face mf = curr_vert[0];
         faces.push_back(Mesh_Face(cur_vert[0], cur_vert[1], cur_vert[2]));
     }
 }
@@ -65,8 +64,9 @@ bool Mesh::load_obj(QString filename) {
 
 
     for (Mesh_Face face : faces) {
-
-        face.faceNormal = face.vert[0] -
+        QVector3D P0P1 = vertices[face.vert[1]].position - vertices[face.vert[0]].position;
+        QVector3D P0P2 = vertices[face.vert[2]].position - vertices[face.vert[0]].position;
+        face.faceNormal = QVector3D.crossProduct(P0P1, P0P2);
     }
 
     cout << "face_cnt=" << face_cnt << endl;
@@ -79,12 +79,12 @@ bool Mesh::load_obj(QString filename) {
 
 void Mesh::recenter() {
     if( vertices.size() < 1) return;
-    QVector3D maxPoint = vertices[0];
-    QVector3D minPoint = vertices[0];
+    QVector3D maxPoint = vertices[0].position;
+    QVector3D minPoint = vertices[0].position;
 
     // Find the AABB
     for( uint i = 0; i < vertices.size(); ++i ) {
-        QVector3D & point = vertices[i];
+        QVector3D & point = vertices[i].position;
         if( point[0] > maxPoint[0] ) maxPoint[0] = point[0];
         if( point[1] > maxPoint[1] ) maxPoint[1] = point[1];
         if( point[2] > maxPoint[2] ) maxPoint[2] = point[2];
@@ -100,7 +100,7 @@ void Mesh::recenter() {
 
     // Translate center of the AABB to the origin
     for( uint i = 0; i < vertices.size(); ++i ) {
-        QVector3D & point = vertices[i];
+        QVector3D & point = vertices[i].position;
         point = point - center;
     }
 }
@@ -108,8 +108,8 @@ void Mesh::recenter() {
 
 void Mesh::process_example() {
     for(size_t v = 0; v < vertices.size(); v++) {
-        if(vertices[v][0] > 0) {
-            vertices[v][0] += 3.5;
+        if(vertices[v].position.x > 0) {
+            vertices[v].position.x += 3.5;
         }
     }
 }
@@ -118,9 +118,9 @@ void Mesh::storeVBO() {
     vector<QVector3D> tri_vert, tri_bary;
 
     for(long f = 0; f < (long)faces.size(); f++) {
-        tri_vert.push_back(vertices.at(faces[f].vert[0]));
-        tri_vert.push_back(vertices.at(faces[f].vert[1]));
-        tri_vert.push_back(vertices.at(faces[f].vert[2]));
+        tri_vert.push_back(vertices.at(faces[f].vert[0]).position);
+        tri_vert.push_back(vertices.at(faces[f].vert[1]).position);
+        tri_vert.push_back(vertices.at(faces[f].vert[2]).position);
 
         tri_bary.push_back(QVector3D(1,0,0));;
         tri_bary.push_back(QVector3D(0,1,0));;
