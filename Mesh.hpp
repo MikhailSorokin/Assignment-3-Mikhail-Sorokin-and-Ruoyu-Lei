@@ -28,10 +28,21 @@ struct Mesh_Vertex {
     QVector3D normal;
 };
 
+/*struct Mesh_Edge {
+
+    Mesh_Edge(int start, int end) {
+        startVertexID = start;
+        endVertexID = end;
+    }
+    int startVertexID;
+    int endVertexID;
+};*/
+
 struct Mesh {
     vector<Mesh_Face> faces; // Mesh faces.
     vector<Mesh_Vertex> vertices; //Mesh Vertices
-    vector<vector<int>> verticesEdgeAdj;
+    //vector<Mesh_Edge> edges; //Mesh edges
+    vector<vector<Mesh_Face>> facesAdjVertex; //Faces connected to a vertex
 
     QOpenGLBuffer vertexBuffer, baryBuffer;
 

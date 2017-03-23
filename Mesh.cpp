@@ -62,11 +62,30 @@ bool Mesh::load_obj(QString filename) {
         }
     }
 
+    /* Adding adjacent faces to every vertex */
+    for (Mesh_Face face : faces) {
+        for (int vi = 0; vi < 3; vi++) {
+            facesAdjVertex[face.vert[vi]].push_back(face);
+        }
+    }
 
+    /* Compute normals for every face */
     for (Mesh_Face face : faces) {
         QVector3D P0P1 = vertices[face.vert[1]].position - vertices[face.vert[0]].position;
         QVector3D P0P2 = vertices[face.vert[2]].position - vertices[face.vert[0]].position;
-        face.faceNormal = QVector3D.crossProduct(P0P1, P0P2);
+        face.faceNormal = QVector3D::crossProduct(P0P1, P0P2);
+    }
+
+    /* Compute normals for every vertex */
+    for (int vi = 0; vi < facesAdjVertex.size(); vi++) {
+        QVector3D normalSum(0,0,0);
+
+        vector<Mesh_Face> adjFaces = facesAdjVertex[vi];
+        for (Mesh_Face adjFace : adjFaces) {
+            normalSum += adjFace.faceNormal;
+        }
+
+        vertices[vi].normal = normalSum.normalized();
     }
 
     cout << "face_cnt=" << face_cnt << endl;
@@ -108,8 +127,8 @@ void Mesh::recenter() {
 
 void Mesh::process_example() {
     for(size_t v = 0; v < vertices.size(); v++) {
-        if(vertices[v].position.x > 0) {
-            vertices[v].position.x += 3.5;
+        if(vertices[v].position[0] > 0) {
+            vertices[v].position[0] += 3.5;
         }
     }
 }
