@@ -355,6 +355,9 @@ void GLview::inflate()
     cout << factor << "\n";
     cout << copysign(10.0, -1.0) << "\n";
 
+    if(mesh == NULL) return;
+    mesh->inflate(factor);
+    update_mesh();
 }
 
 void GLview::randomNoise()
@@ -370,6 +373,10 @@ void GLview::randomNoise()
         return;
     }
     cout << factor << "\n";
+
+    if(mesh == NULL) return;
+    mesh->random_noise(factor);
+    update_mesh();
 }
 
 void GLview::splitFaces()

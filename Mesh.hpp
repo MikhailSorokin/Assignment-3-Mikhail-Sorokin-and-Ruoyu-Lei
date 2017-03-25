@@ -19,16 +19,8 @@ struct Mesh_Face {
     QVector3D faceNormal;
 };
 
-struct Mesh_Vertex {
 
-    Mesh_Vertex(int x, int y, int z) {
-        position = QVector3D(x,y,z);
-    }
-    QVector3D position;
-    QVector3D normal;
-};
-
-/*struct Mesh_Edge {
+struct Mesh_Edge {
 
     Mesh_Edge(int start, int end) {
         startVertexID = start;
@@ -36,12 +28,24 @@ struct Mesh_Vertex {
     }
     int startVertexID;
     int endVertexID;
-};*/
+};
+
+
+struct Mesh_Vertex {
+
+    Mesh_Vertex(float x, float y, float z) {
+        position = QVector3D(x,y,z);
+    }
+    QVector3D position;
+    float avgEdgeLength;
+    QVector3D normal;
+
+    vector<Mesh_Edge> edges;
+};
 
 struct Mesh {
     vector<Mesh_Face> faces; // Mesh faces.
     vector<Mesh_Vertex> vertices; //Mesh Vertices
-    //vector<Mesh_Edge> edges; //Mesh edges
     vector<vector<Mesh_Face>> facesAdjVertex; //Faces connected to a vertex
 
     QOpenGLBuffer vertexBuffer, baryBuffer;
@@ -53,6 +57,15 @@ struct Mesh {
     void recenter();
     void add_face(const vector<int> &cur_vert);
     void process_example();
+
+    //Helper functions
+    float length(QVector3D edgeVector);
+    //MUST IMPLEMENT
+    void compute_average_edge_lengths();
+    void compute_vertex_normals();
+
+    void inflate(float factor);
+    void random_noise(float factor);
 };
 
 #endif // __MESH_HPP__
