@@ -13,7 +13,7 @@ void Mesh::add_face(const vector<int> &cur_vert) {
         int v0 = cur_vert[0], v1 = cur_vert[1], v2 = cur_vert[2];
 
         faces.push_back(Mesh_Face(v0, v1, v2));     // First face
-        
+
         // all subsequent faces
         for( size_t i = 3; i < cur_vert.size(); i++ ) {
             v1 = v2; v2 = cur_vert[i];
@@ -63,20 +63,26 @@ bool Mesh::load_obj(QString filename) {
     }
 
     /* Adding adjacent faces to every vertex */
+    /*for (int i = 0; i < vertices.size(); i++) {
+        facesAdjVertex.push_back(vector<Mesh_Face>());
+    }
+
     for (Mesh_Face face : faces) {
         for (int vi = 0; vi < 3; vi++) {
             facesAdjVertex[face.vert[vi]].push_back(face);
         }
     }
 
-    /* Compute normals for every face */
+
+
+    //Compute normals for every face
     for (Mesh_Face face : faces) {
         QVector3D P0P1 = vertices[face.vert[1]].position - vertices[face.vert[0]].position;
         QVector3D P0P2 = vertices[face.vert[2]].position - vertices[face.vert[0]].position;
         face.faceNormal = QVector3D::crossProduct(P0P1, P0P2);
     }
 
-    /* Compute normals for every vertex */
+    //Compute normals for every vertex
     for (int vi = 0; vi < facesAdjVertex.size(); vi++) {
         QVector3D normalSum(0,0,0);
 
@@ -86,7 +92,7 @@ bool Mesh::load_obj(QString filename) {
         }
 
         vertices[vi].normal = normalSum.normalized();
-    }
+    }*/
 
     cout << "face_cnt=" << face_cnt << endl;
     cout << "faces.size()=" << faces.size() << endl;
