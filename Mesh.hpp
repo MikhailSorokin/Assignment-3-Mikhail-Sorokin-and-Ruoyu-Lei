@@ -60,12 +60,16 @@ struct Mesh {
 
     //Helper functions
     float length(QVector3D edgeVector);
+    float gaussian(float x, float y, float z, float u, float v, float w, float sigma);
+
     //MUST IMPLEMENT
     void compute_average_edge_lengths();
     void compute_vertex_normals();
 
     void inflate(float factor);
     void random_noise(float factor);
+    void smooth();
+    void sharpen();
 };
 
 #endif // __MESH_HPP__

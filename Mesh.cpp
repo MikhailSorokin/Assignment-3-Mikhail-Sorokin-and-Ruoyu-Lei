@@ -225,3 +225,50 @@ void Mesh::storeVBO() {
     baryBuffer.bind();
     baryBuffer.allocate(&tri_bary[0] , sizeof( QVector3D ) * tri_bary.size());
 }
+
+// 3d gaussian
+float Mesh::gaussian(float x, float y, float z, float u, float v, float w, float sigma){
+    float std = -0.5 * (x - u)*(x - u) / (sigma * sigma) +
+            -0.5 * (y - v)*(y - v) / (sigma * sigma) + 
+            -0.5 * (z - w)*(z - w) / (sigma * sigma);
+    float wght = exp(std);
+
+    return wght;
+}
+
+void Mesh::smooth() {
+    compute_average_edge_lengths();
+
+    // the new vertices positions
+    vector<QVector3D> smoothedVertices;
+
+    for (size_t iv = 0; iv < vertices.size(); iv++){
+        QVector3D currPst = vertices[iv].position;
+        float sigma = vertices[iv].avgEdgeLength;
+        float norm_const = 0; 
+        QVector3D point(0,0,0);
+
+        for (size_t iu = 0; iu < vertices[iv].edges.size(); iu++){
+            int neighborId = vertices[iv].edges[iu].startVertexID == iv ? vertices[iv].edges[iu].endVertexID : vertices[iv].edges[iu].startVertexID;
+            
+            QVector3D neibPst = vertices[neighborId].position;
+
+            float gauss = gaussian(currPst.x(), currPst.y(), currPst.z(), neibPst.x(), neibPst.y(),neibPst.z(),sigma);
+            norm_const += gauss;
+            point += gauss * neibPst;
+        }
+
+        QVector3D pos = point / norm_const;
+        // QVector3D pos = vertices[iv].position;
+        smoothedVertices.push_back(pos);
+    }
+
+    // replace with new positions
+    for (size_t i = 0; i < vertices.size();i++){
+        vertices[i].position = smoothedVertices[i];
+    }
+}
+
+void Mesh::sharpen(){
+    // ???
+}

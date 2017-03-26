@@ -412,6 +412,10 @@ void GLview::centerVerticesTangentially()
 void GLview::sharpen()
 {
     cout << "implement sharpen()\n";
+
+    if(mesh == NULL) return;
+    mesh->sharpen();
+    update_mesh();
 }
 
 void GLview::truncate()
@@ -441,4 +445,8 @@ void GLview::flipEdges()
 
 void GLview::smooth() {
   cout << "implement smooth()\n";
+
+  if(mesh == NULL) return;
+  mesh->smooth();
+  update_mesh();
 }
