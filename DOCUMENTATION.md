@@ -1,217 +1,126 @@
 ﻿Authors - Mikhail Sorokin and Ruoyu Lei
 
-Programming Assignment 2: Image Processing
+Programming Assignment 3: Mesh Processing
 ----------
 #### The following methods are implemented:
 
-1. [Brightness](#brightness)
-2. [Contrast](#contrast)
-3. [Black and White](#black-and-white)
-4. [Gaussian Blur](#gaussian-blur)
-5. [Channel Extract](#channel-extract)
-6. [Median Filter](#median-filter)
-7. [Rotate](#rotate)
-8. [Scale](#scale)
-9. [Crop](#crop)
-10. [Fun](#fun)
+1. [Analysis](#analysis)
+2. [Warps](#warps)
+3. [Smooth](#smooth)
+4. [Sharpen](#sharpen)
+5. [Split faces](#split)
+6. [Collapse short edges](#collapse)
+7. [Subdivision](#subdiv)
+8. [BONUS](#bonus)
 
-### This image will be used to have different effects applied on:
-![foo](input/Mountain_side.jpg)
+# Analysis
 
-# Brightness
-Brightness is implemented by using the interpolation formula provided 
+The analysis is with the normal function calculations and average edge length calculations.
 
->out = (1 - alpha) * in0 + alpha * in1
+First, the mesh structures were updated in Mesh_Face and Mesh_Vertex. Additionally, Mesh_Edge was added for average edge calculations.
+``` 
+struct Mesh_Face {
+    Mesh_Face() {
+        vert[0] = vert[1] = vert[2] = -1;
+    }
 
-where alpha is the factor, in0 is zero alpha image, and in1 is the original image.
+    Mesh_Face(long v0, long v1, long v2) {
+        vert[0] = v0; vert[1] = v1; vert[2] = v2;
+    }
+    long vert[3]; // indices (in the vertex array) of all vertices (mesh_vertex)
+    QVector3D faceNormal;
+};
 
-In this method specifically, the zero alpha image is a pure black image that has the same width and height as the original image.
 
-The following image is produced by running the command:
+struct Mesh_Edge {
 
-```
-./cmsc427 input/Mountain_side.jpg output/Brightness.jpg -brightness 0.5
-```
+    Mesh_Edge(int start, int end) {
+        startVertexID = start;
+        endVertexID = end;
+    }
+    int startVertexID;
+    int endVertexID;
+};
 
-![foo](output/Brightness.jpg)
 
-The following image is produced by running the command:
+struct Mesh_Vertex {
 
-```
-./cmsc427 input/Mountain_side.jpg output/Brightness_2.jpg -brightness 2
-```
+    Mesh_Vertex(float x, float y, float z) {
+        position = QVector3D(x,y,z);
+    }
+    QVector3D position;
+    float avgEdgeLength;
+    QVector3D normal;
 
-![foo](output/Brightness_2.jpg)
+    vector<Mesh_Edge> edges;
+};
+``` 
 
-# Contrast
-Contrast is also implemented by using this interpolation formula:
->out = (1 - alpha) * in0 + alpha * in1
+Next, the mesh struct was updated to reflect these changes, and to calculate normals a 2D vector was added for calculating normal adjacencies.
+``` 
+struct Mesh {
+    vector<Mesh_Face> faces; // Mesh faces.
+    vector<Mesh_Vertex> vertices; //Mesh Vertices
+    vector<vector<Mesh_Face>> facesAdjVertex; //Faces connected to a vertex
+    ...
+    ...
+}
+``` 
 
-and in this method in0 is a gray image that has r,g,b values of the average luminance of the original image, calculated by
->luminance = 0.30*r + 0.59*g + 0.11*b
+This section is used in Warps, and all of the other methods below. Thus, they will be discussed further there.
 
-Running this command will give us:
-```
-./cmsc427 input/Mountain_side.jpg output/contrast_-0.5.jpg -contrast -0.5
-```
+# Warps
 
-![foo](output/contrast_-0.5.jpg)
+Inflate was implemented using [insert here]
+Inflate BEFORE:
+![foo](img_before/inflate.jpg)
 
-Running this command will give us:
-```
-./cmsc427 input/Mountain_side.jpg output/contrast_2.jpg -contrast 2
-```
+Inflate AFTER doing following factors on sphere.obj:
 
-![foo](output/Contrast_2.jpg)
+``` 
+inflate 5.0
+inflate -5.0
+inflate 6.0
+``` 
+![foo](img_after/inflate.jpg)
 
-# Black and White
-Black & White method is implemented by replacing each pixel with its luminance.
+Random Noise was implemented using [insert here]
+Random Noise BEFORE:
+![foo](img_before/random_noise.jpg)
 
-Running this command will give us:
-```
-./cmsc427 input/Mountain_side.jpg output/blackandwhite.jpg -blackandwhite
-```
+Random Noise AFTER doing following factors on iron_man.obj:
 
-![foo](output/blackandwhite.jpg)
+``` 
+Random Noise 3.0
+``` 
+![foo](img_after/random_noise.jpg)
 
-# Gaussian Blur
-Gaussian Blue is produced using the gaussian formula and using the standard deviation of neighboring points of every pixel in order to produce a blurring effect on the entire image.
+# Smooth
 
-Running this command will give us:
-```
-./cmsc427 input/Mountain_side.jpg output/gaussianblur_04.jpg -gaussian_blur 0.4
-```
+Smooth was implemented using [insert here]
+Smooth BEFORE:
+![foo](img_before/smooth.jpg)
 
-![foo](output/gaussianblur_04.jpg)
+Smooth AFTER on Car.obj:
 
-Running this command will give us:
-```
-./cmsc427 input/Mountain_side.jpg output/gaussianblur_5.jpg -gaussian_blur 5
-```
+![foo](img_after/smooth.jpg)
 
-![foo](output/gaussianblur_5.jpg)
+# Sharpen
 
-# Channel Extract
-Channel extract is implemented by keeping one color channel's value as it is while the other twos' are set to zero.
+TO BE DONE
 
-Running this command will give us:
-```
-./cmsc427 input/Mountain_side.jpg output/chnext_r.jpg -channel_extract 0
-```
+# Split
 
-![foo](output/chnext_r.jpg)
+TO BE DONE
 
-Running this command will give us:
-```
-./cmsc427 input/Mountain_side.jpg output/chnext_g.jpg -channel_extract 1
-```
+# Collapse
 
-![foo](output/chnext_g.jpg)
+TO BE DONE
 
-Running this command will give us:
-```
-./cmsc427 input/Mountain_side.jpg output/chnext_b.jpg -channel_extract 2
-```
+# Subdiv
 
-![foo](output/chnext_b.jpg)
+TO BE DONE
 
-# Median Filter
-Median filter is implemented by using the median of values adjacent to a pixel using the "scale width" formula. Once the median of the pixels are computed, then the image turns out to remove some of the "dirty" or "noisy" pixels by filling them in with the median value (assume odd input width according to Piazza!).
+# BONUS
 
-Running this command will give us an example of that action in process:
-```
-./cmsc427 output/Median_Filter_Test.jpg output/MedWidth.jpg -median_filter 5.0
-```
-
-# Rotate
-
-Rotation of image is implemented by applying the formula for every (x,y) in the target image:
-
->x=ucosΘ-vsinΘ
-
->y=usinΘ+vcosΘ
-
-where (u,v) is the coordinates in the original image, and Θ is the angle in the range [0,360].
-
-There are three -sampling options you can call alone with -scale. They are: 
-
->0 Point sampling and gaussian.
-
->1 Bilinear sampling
-
->2 Gaussian sampling
-
-Point sampling is also called nearest-neighbor sampling. It's the simplest sampling method because it just naively finds the flooring coordinates from the original image when doing reverse-mapping.
-
-This command rotates the image -using point sampling- by 90 degress and gives the output:
-
-```
-./cmsc427 input/Mountain_side.jpg output/rotate_90.jpg -rotate 90 -sampling 0
-```
-
-![foo](output/rotate_90.jpg)
-
-This command rotates the image -using bilinear filterin- by 180 degress and gives the output:
-
-```
-./cmsc427 input/Mountain_side.jpg output/rotate_180.jpg -rotate 180 -sampling 1
-```
-
-![foo](output/rotate_180.jpg)
-
-This command scales down the image by half using Gaussian sampling, which has been described in detail in the Gaussian Blur function.
-
-```
-./cmsc427 input/Mountain_side.jpg output/rotate_270.jpg -rotate 270 -sampling 2
-```
-
-![foo](output/rotate_270.jpg)
-
-# Scale
-Scale is implemented using reverse-mapping. We are given a value in the range of [0.05,20]. If it's small than 1 then the image is scaled down. Similarly, the image is scaled up when the value is greater than 1.
-
-The sampling options are discussed above in rotate.
-
-This command scales down the image by half using point sampling.
-
-```
-./cmsc427 input/Mountain_side.jpg output/scale_0.jpg -scale 0.5 0.5 -sampling 0
-```
-
-![foo](output/scale_0.jpg)
-
-This command scales down the image by half using bilinear sampling.
-
-```
-./cmsc427 input/Mountain_side.jpg output/scale_1.jpg -scale 0.5 0.5 -sampling 1
-```
-
-![foo](output/scale_1.jpg)
-
-This command scales down the image by half using Gaussian sampling.
-
-```
-./cmsc427 input/Mountain_side.jpg output/scale_2.jpg -scale 0.5 0.5 -sampling 2
-```
-
-![foo](output/scale_2.jpg)
-
-# Crop
-In crop method, we are given 4 arguments: top_left_x, top_left_y, crop_width and crop_height. It is implemented by copying pixels starting from (top_left_x, top_left_y) all the way to (top_left_x + crop_width, top_left_y + crop_height) as a rectangle.
-
-This commands crops the image from (200,200). The width of the cutting window is 400 and the height is 500.
-
-```
-./cmsc427 input/Mountain_side.jpg output/crop_400.jpg -crop 200 200 400 500
-```
-
-![foo](output/crop_400.jpg)
-
-# Fun
-Looks like a wave swept through the image.
-
-```
-./cmsc427 input/cballs.jpg output/so_fun.jpg -fun -sampling 0
-```
-
-![foo](output/so_fun.jpg)
+(MAYBE) TO BE DONE 
