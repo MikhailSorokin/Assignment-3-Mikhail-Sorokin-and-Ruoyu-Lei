@@ -235,7 +235,7 @@ void Mesh::smooth() {
             point += gauss * neibPst;
         }
 
-        QVector3D pos = point / norm_const;
+        QVector3D pos = (point + currPst) / (norm_const + 1);
         // QVector3D pos = vertices[iv].position;
         smoothedVertices.push_back(pos);
     }
