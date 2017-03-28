@@ -382,6 +382,10 @@ void GLview::randomNoise()
 void GLview::splitFaces()
 {
     cout << "implement splitFaces()\n";
+
+    if(mesh == NULL) return;
+    mesh->split_faces();
+    update_mesh();
 }
 
 void GLview::starFaces()

@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <map>
+#include <unordered_map>
 using namespace std;
 
 struct Mesh_Face {
@@ -21,6 +22,12 @@ struct Mesh_Face {
 
 
 struct Mesh_Edge {
+
+    // adding this default constructor to make the nested vector initialization work
+    Mesh_Edge() {
+        startVertexID = -1;
+        endVertexID = -1;
+    }
 
     Mesh_Edge(int start, int end) {
         startVertexID = start;
@@ -59,8 +66,12 @@ struct Mesh {
     void process_example();
 
     //Helper functions
+    void debug_print(string str);
     float length(QVector3D edgeVector);
     float gaussian(float x, float y, float z, float u, float v, float w, float sigma);
+    long check_vertex(unordered_map<string,long> map, string key);
+    Mesh_Vertex get_midpoint_vertex(QVector3D a, QVector3D b);
+    void add_edges(long start, long end, long index, unordered_map<string,long>& h_edges, vector<vector<Mesh_Edge>>& n_edges);
 
     //MUST IMPLEMENT
     void compute_average_edge_lengths();
@@ -70,6 +81,7 @@ struct Mesh {
     void random_noise(float factor);
     void smooth();
     void sharpen();
+    void split_faces();
 };
 
 #endif // __MESH_HPP__

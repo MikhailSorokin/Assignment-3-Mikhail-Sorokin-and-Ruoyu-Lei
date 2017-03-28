@@ -1,10 +1,15 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <unordered_map>
 
 #include "Mesh.hpp"
 
 using namespace std;
+
+void Mesh::debug_print(string str) {
+    cout<<"debug info: "<<str<<"\n";
+}
 
 void Mesh::add_face(const vector<int> &cur_vert) {
     if(cur_vert.size() > 3) {
@@ -243,6 +248,191 @@ void Mesh::smooth() {
 
 void Mesh::sharpen(){
     // ???
+}
+
+long Mesh::check_vertex(unordered_map<string,long> map, string key) {
+    auto f = map.find(key);
+    if (f == map.end()) {
+        return -1;
+    } else {
+        return map[key];
+    }
+}
+
+Mesh_Vertex Mesh::get_midpoint_vertex(QVector3D a, QVector3D b) {
+    return Mesh_Vertex((a.x() + b.x())/2, (a.y() + b.y())/2, (a.z() + b.z())/2);
+}
+
+void Mesh::add_edges(long start, long end, long index, unordered_map<string,long>& h_edges, vector<vector<Mesh_Edge>>& n_edges) {
+    string key = start < end ? to_string(start) + "," + to_string(end) : to_string(end) + "," + to_string(start);
+    auto f = h_edges.find(key);
+
+    if (f == h_edges.end()) {
+        // it's a new edge
+        Mesh_Edge e1 = Mesh_Edge(start,index);
+        Mesh_Edge e2 = Mesh_Edge(index,end);
+
+        n_edges[start].push_back(e1);
+        n_edges[index].push_back(e1);
+
+        n_edges[end].push_back(e2);
+        n_edges[index].push_back(e2);
+
+        // put new vertex into h_edges
+        h_edges[key] = index;
+    }
+}
+
+void Mesh::split_faces(){
+
+    // a hash table to keep track of new edges added to the original vertices
+    // this does not include new edges between new vertices because they must be new
+    unordered_map<string,long> h_edges;
+
+    // a nested vector to store the new edges.
+    // index is corresponding to the index in vertices
+    vector<vector<Mesh_Edge>> n_edges(vertices.size() * 4);
+
+    // a vector that stores new faces
+    // this will replace the original faces vector in the end
+    vector<Mesh_Face> n_faces;
+
+    // a nested vector to store new adjacent faces
+    // this will replace the original facesAdjVertex in the end
+    vector<vector<Mesh_Face>> n_f_adj(vertices.size() * 4);
+
+    // long vert_counter = vertices.size();
+
+    for (Mesh_Face& face: faces) {
+        // 0. get 3 original vertices
+        long a = face.vert[0];
+        long b = face.vert[1];
+        long c = face.vert[2];
+
+        // 1. determine 3 midpoints and add them into vertices (if new)
+        // a - x - b
+        // a - y - c
+        // b - z - c
+
+        long x = -1, y = -1, z = -1;
+
+        // the first index is always less than the second one
+        string ab,ac,bc;
+        ab = a < b ? to_string(a)+","+to_string(b) : to_string(b)+","+to_string(a);
+        //ba = to_string(b)+","+to_string(a);
+        ac = a < c ? to_string(a)+","+to_string(c) : to_string(c)+","+to_string(a);
+        //ca = to_string(c)+","+to_string(a);
+        bc = b < c ? to_string(b)+","+to_string(c) : to_string(c)+","+to_string(b);
+        //cb = to_string(c)+","+to_string(b);
+
+        long ab_result = check_vertex(h_edges,ab);
+        if (ab_result == -1) {
+            auto midpoint = get_midpoint_vertex(vertices[a].position,vertices[b].position);
+            vertices.push_back(midpoint);
+
+            x = vertices.size() - 1;
+        } else {
+            x = ab_result;
+        }
+
+        long ac_result = check_vertex(h_edges,ac);
+        if (ac_result == -1) {
+            auto midpoint = get_midpoint_vertex(vertices[a].position,vertices[c].position);
+            vertices.push_back(midpoint);
+
+            y = vertices.size() - 1;
+        } else {
+            y = ac_result;
+        }
+
+        long bc_result = check_vertex(h_edges,bc);
+        if (bc_result == -1) {
+            auto midpoint = get_midpoint_vertex(vertices[b].position,vertices[c].position);
+            vertices.push_back(midpoint);
+
+            z = vertices.size() - 1;
+        } else {
+            z = bc_result;
+        }
+
+        // 2. create 6 new edges and add into n_edges
+        // ax, ay, bx, bz, cy, cz
+
+        // check with h_edges and skip the edges that already exist
+        // after putting into n_edges, put new vertices into h_edges
+
+        add_edges(a,b,x,h_edges,n_edges);
+        add_edges(a,c,y,h_edges,n_edges);
+        add_edges(b,c,z,h_edges,n_edges);
+
+        // 3. create 3 new edges: xy, xz, yz
+        // put them into n_edges
+
+        Mesh_Edge xy = Mesh_Edge(x,y);
+        Mesh_Edge xz = Mesh_Edge(x,z);
+        Mesh_Edge yz = Mesh_Edge(y,z);
+
+        n_edges[x].push_back(xy);
+        n_edges[x].push_back(xz);
+
+        n_edges[y].push_back(xy);
+        n_edges[y].push_back(yz);
+
+        n_edges[z].push_back(xz);
+        n_edges[z].push_back(yz);
+
+        // 4. create new faces: one, two, three, four
+        // a x y => one
+        // x b z => two
+        // x y z => three
+        // y z c =? four
+
+        Mesh_Face one = Mesh_Face(a,x,y);
+        Mesh_Face two = Mesh_Face(x,b,z);
+        Mesh_Face three = Mesh_Face(x,y,z);
+        Mesh_Face four = Mesh_Face(y,z,c);
+
+        // push them into n_faces
+        n_faces.push_back(one);
+        n_faces.push_back(two);
+        n_faces.push_back(three);
+        n_faces.push_back(four);
+
+        // 5. add faces into n_f_adj
+        n_f_adj[a].push_back(one);
+        n_f_adj[x].push_back(one);
+        n_f_adj[y].push_back(one);
+
+        n_f_adj[x].push_back(two);
+        n_f_adj[b].push_back(two);
+        n_f_adj[z].push_back(two);
+
+        n_f_adj[x].push_back(three);
+        n_f_adj[y].push_back(three);
+        n_f_adj[z].push_back(three);
+
+        n_f_adj[y].push_back(four);
+        n_f_adj[z].push_back(four);
+        n_f_adj[c].push_back(four);
+
+        // end of for loop
+    }
+
+    // 6. replace faces with n_faces
+    faces = n_faces;
+
+    // 7. replace facesAdjVertex with n_f_adj
+    auto start = n_f_adj.begin();
+    auto end = n_f_adj.begin() + vertices.size();
+
+    vector<vector<Mesh_Face>> newVec(start,end);
+    facesAdjVertex = newVec;
+
+    // 8. update edges in vertices
+    for (size_t i = 0; i < vertices.size(); i++) {
+        vertices[i].edges = n_edges[i];
+    }
+
 }
 
 void Mesh::storeVBO() {
