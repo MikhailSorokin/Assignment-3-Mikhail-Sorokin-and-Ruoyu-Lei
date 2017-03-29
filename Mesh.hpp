@@ -69,9 +69,9 @@ struct Mesh {
     void debug_print(string str);
     float length(QVector3D edgeVector);
     float gaussian(float x, float y, float z, float u, float v, float w, float sigma);
-    long check_vertex(unordered_map<string,long> map, string key);
+    int check_vertex(unordered_map<string,int> map, string key);
     Mesh_Vertex get_midpoint_vertex(QVector3D a, QVector3D b);
-    void add_edges(long start, long end, long index, unordered_map<string,long>& h_edges, vector<vector<Mesh_Edge>>& n_edges);
+    void add_edges(int start, int end, int index, string key, unordered_map<string,int>& h_edges, vector<vector<Mesh_Edge>>& n_edges);
 
     //MUST IMPLEMENT
     void compute_average_edge_lengths();

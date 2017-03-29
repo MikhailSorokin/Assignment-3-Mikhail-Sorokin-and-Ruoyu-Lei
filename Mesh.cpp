@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iomanip>
 #include <unordered_map>
+#include <ctime>
 
 #include "Mesh.hpp"
 
@@ -250,7 +251,7 @@ void Mesh::sharpen(){
     // ???
 }
 
-long Mesh::check_vertex(unordered_map<string,long> map, string key) {
+int Mesh::check_vertex(unordered_map<string,int> map, string key) {
     auto f = map.find(key);
     if (f == map.end()) {
         return -1;
@@ -263,8 +264,8 @@ Mesh_Vertex Mesh::get_midpoint_vertex(QVector3D a, QVector3D b) {
     return Mesh_Vertex((a.x() + b.x())/2, (a.y() + b.y())/2, (a.z() + b.z())/2);
 }
 
-void Mesh::add_edges(long start, long end, long index, unordered_map<string,long>& h_edges, vector<vector<Mesh_Edge>>& n_edges) {
-    string key = start < end ? to_string(start) + "," + to_string(end) : to_string(end) + "," + to_string(start);
+void Mesh::add_edges(int start, int end, int index, string key, unordered_map<string,int>& h_edges, vector<vector<Mesh_Edge>>& n_edges) {
+    // string key = start < end ? to_string(start) + "," + to_string(end) : to_string(end) + "," + to_string(start);
     auto f = h_edges.find(key);
 
     if (f == h_edges.end()) {
@@ -284,10 +285,11 @@ void Mesh::add_edges(long start, long end, long index, unordered_map<string,long
 }
 
 void Mesh::split_faces(){
+    clock_t begin = clock();
 
     // a hash table to keep track of new edges added to the original vertices
     // this does not include new edges between new vertices because they must be new
-    unordered_map<string,long> h_edges;
+    unordered_map<string,int> h_edges;
 
     // a nested vector to store the new edges.
     // index is corresponding to the index in vertices
@@ -301,31 +303,31 @@ void Mesh::split_faces(){
     // this will replace the original facesAdjVertex in the end
     vector<vector<Mesh_Face>> n_f_adj(vertices.size() * 4);
 
+    // same some memory
+    facesAdjVertex.clear();
+
     // long vert_counter = vertices.size();
 
     for (Mesh_Face& face: faces) {
         // 0. get 3 original vertices
-        long a = face.vert[0];
-        long b = face.vert[1];
-        long c = face.vert[2];
+        int a = face.vert[0];
+        int b = face.vert[1];
+        int c = face.vert[2];
 
         // 1. determine 3 midpoints and add them into vertices (if new)
         // a - x - b
         // a - y - c
         // b - z - c
 
-        long x = -1, y = -1, z = -1;
+        int x = -1, y = -1, z = -1;
 
         // the first index is always less than the second one
         string ab,ac,bc;
         ab = a < b ? to_string(a)+","+to_string(b) : to_string(b)+","+to_string(a);
-        //ba = to_string(b)+","+to_string(a);
         ac = a < c ? to_string(a)+","+to_string(c) : to_string(c)+","+to_string(a);
-        //ca = to_string(c)+","+to_string(a);
         bc = b < c ? to_string(b)+","+to_string(c) : to_string(c)+","+to_string(b);
-        //cb = to_string(c)+","+to_string(b);
 
-        long ab_result = check_vertex(h_edges,ab);
+        int ab_result = check_vertex(h_edges,ab);
         if (ab_result == -1) {
             auto midpoint = get_midpoint_vertex(vertices[a].position,vertices[b].position);
             vertices.push_back(midpoint);
@@ -335,7 +337,7 @@ void Mesh::split_faces(){
             x = ab_result;
         }
 
-        long ac_result = check_vertex(h_edges,ac);
+        int ac_result = check_vertex(h_edges,ac);
         if (ac_result == -1) {
             auto midpoint = get_midpoint_vertex(vertices[a].position,vertices[c].position);
             vertices.push_back(midpoint);
@@ -345,7 +347,7 @@ void Mesh::split_faces(){
             y = ac_result;
         }
 
-        long bc_result = check_vertex(h_edges,bc);
+        int bc_result = check_vertex(h_edges,bc);
         if (bc_result == -1) {
             auto midpoint = get_midpoint_vertex(vertices[b].position,vertices[c].position);
             vertices.push_back(midpoint);
@@ -361,9 +363,9 @@ void Mesh::split_faces(){
         // check with h_edges and skip the edges that already exist
         // after putting into n_edges, put new vertices into h_edges
 
-        add_edges(a,b,x,h_edges,n_edges);
-        add_edges(a,c,y,h_edges,n_edges);
-        add_edges(b,c,z,h_edges,n_edges);
+        add_edges(a,b,x,ab,h_edges,n_edges);
+        add_edges(a,c,y,ac,h_edges,n_edges);
+        add_edges(b,c,z,bc,h_edges,n_edges);
 
         // 3. create 3 new edges: xy, xz, yz
         // put them into n_edges
@@ -385,7 +387,7 @@ void Mesh::split_faces(){
         // a x y => one
         // x b z => two
         // x y z => three
-        // y z c =? four
+        // y z c => four
 
         Mesh_Face one = Mesh_Face(a,x,y);
         Mesh_Face two = Mesh_Face(x,b,z);
@@ -432,7 +434,10 @@ void Mesh::split_faces(){
     for (size_t i = 0; i < vertices.size(); i++) {
         vertices[i].edges = n_edges[i];
     }
-
+    
+    clock_t endtime = clock();
+    double elapsed_secs = double(endtime - begin) / CLOCKS_PER_SEC;
+    debug_print("split faces run for "+to_string(elapsed_secs)+" seconds");
 }
 
 void Mesh::storeVBO() {
