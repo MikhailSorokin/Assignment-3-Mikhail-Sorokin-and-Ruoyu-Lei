@@ -89,7 +89,7 @@ void Mesh::compute_average_edge_lengths() {
     }
 
     //Compute normals for every vertex
-    for (int vi = 0; vi < vertices.size(); vi++) {
+    for (size_t vi = 0; vi < vertices.size(); vi++) {
         float vertexAdjEdgeSum = 0.f;
 
         for (Mesh_Edge& edge : vertices[vi].edges) {
@@ -115,7 +115,7 @@ void Mesh::compute_vertex_normals() {
     }
 
     /* Adding adjacent faces to every vertex */
-    for (int i = 0; i < vertices.size(); i++) {
+    for (size_t i = 0; i < vertices.size(); i++) {
         facesAdjVertex.push_back(vector<Mesh_Face>());
     }
 
@@ -129,7 +129,7 @@ void Mesh::compute_vertex_normals() {
     }
 
     //Compute normals for every vertex
-    for (int vi = 0; vi < vertices.size(); vi++) {
+    for (size_t vi = 0; vi < vertices.size(); vi++) {
         QVector3D normalSum(0,0,0);
 
         vector<Mesh_Face> adjFaces = facesAdjVertex[vi];
@@ -302,7 +302,7 @@ void Mesh::sharpen(float factor){
     }
 }
 
-int Mesh::check_vertex(unordered_map<string,int> map, string key) {
+int Mesh::check_vertex(unordered_map<int,int> map, int key) {
     auto f = map.find(key);
     if (f == map.end()) {
         return -1;
@@ -315,8 +315,11 @@ Mesh_Vertex Mesh::get_midpoint_vertex(QVector3D a, QVector3D b) {
     return Mesh_Vertex((a.x() + b.x())/2, (a.y() + b.y())/2, (a.z() + b.z())/2);
 }
 
-void Mesh::add_edges(int start, int end, int index, string key, unordered_map<string,int>& h_edges, vector<vector<Mesh_Edge>>& n_edges) {
-    // string key = start < end ? to_string(start) + "," + to_string(end) : to_string(end) + "," + to_string(start);
+int Mesh::cantor(int a, int b) {
+    return floor(((a+b) * (a+b+1)) * 0.5) + b;
+}
+
+void Mesh::add_edges(int start, int end, int index, int key, unordered_map<int,int>& h_edges, vector<vector<Mesh_Edge>>& n_edges) {
     auto f = h_edges.find(key);
 
     if (f == h_edges.end()) {
@@ -340,7 +343,7 @@ void Mesh::split_faces(){
 
     // a hash table to keep track of new edges added to the original vertices
     // this does not include new edges between new vertices because they must be new
-    unordered_map<string,int> h_edges;
+    unordered_map<int,int> h_edges;
 
     // a nested vector to store the new edges.
     // index is corresponding to the index in vertices
@@ -358,6 +361,8 @@ void Mesh::split_faces(){
     facesAdjVertex.clear();
 
     // long vert_counter = vertices.size();
+    int counter = 0;
+    int mysize = faces.size();
 
     for (Mesh_Face& face: faces) {
         // 0. get 3 original vertices
@@ -373,10 +378,10 @@ void Mesh::split_faces(){
         int x = -1, y = -1, z = -1;
 
         // the first index is always less than the second one
-        string ab,ac,bc;
-        ab = a < b ? to_string(a)+","+to_string(b) : to_string(b)+","+to_string(a);
-        ac = a < c ? to_string(a)+","+to_string(c) : to_string(c)+","+to_string(a);
-        bc = b < c ? to_string(b)+","+to_string(c) : to_string(c)+","+to_string(b);
+        int ab,ac,bc;
+        ab = a < b ? cantor(a,b) : cantor(b,a);
+        ac = a < c ? cantor(a,c) : cantor(c,a);
+        bc = b < c ? cantor(b,c) : cantor(c,b);
 
         int ab_result = check_vertex(h_edges,ab);
         if (ab_result == -1) {
@@ -469,6 +474,8 @@ void Mesh::split_faces(){
         n_f_adj[c].push_back(four);
 
         // end of for loop
+        debug_print(to_string(counter)+"/"+to_string(mysize));
+        counter++;
     }
 
     // 6. replace faces with n_faces
@@ -489,6 +496,82 @@ void Mesh::split_faces(){
     clock_t endtime = clock();
     double elapsed_secs = double(endtime - begin) / CLOCKS_PER_SEC;
     debug_print("split faces run for "+to_string(elapsed_secs)+" seconds");
+}
+
+void Mesh::loopSubdivision() {
+    compute_average_edge_lengths();
+    // 0 edges?
+    int counter = 0;
+    int facecounter = 0;
+    for (size_t i = 0; i < vertices.size(); i++) {
+        if (vertices[i].edges.size() == 0) {
+            counter++;
+        }
+    }
+    debug_print("how many 0 edge vertices? "+to_string(counter));
+    debug_print("do they have no faces connected? "+to_string(facecounter));
+
+    int even_v_len = vertices.size();
+
+    // 1. run split faces
+    split_faces();
+
+    // int odd_v_len = vertices.size() - even_v_len;
+
+    vector<QVector3D> newVec;
+
+    // 2. process even vertices
+    for (int i = 0; i < even_v_len; i++) {
+
+        // 2.1 get all neighbor vertice
+        vector<int> neibr;
+        for (Mesh_Edge& edge : vertices[i].edges) {
+            int id = edge.startVertexID == i ? edge.endVertexID : edge.startVertexID;
+            neibr.push_back(id);
+        }
+
+        // 2.2 get beta and center
+        float beta = 0, center = 0;
+        int neibr_len = neibr.size();
+
+        if (neibr_len == 3) {
+            beta = 3/16;
+            center = 1 - neibr_len * beta;
+        } else if (neibr_len == 2) {
+            beta = 1/8;
+            center = 3/4;
+        } else if (neibr_len == 0 || neibr_len == 1) {
+            // this does happen but why?
+            // debug_print("size of neibr is "+to_string(vertices[i].edges.size()));
+            center = 1;
+        } else {   
+            // > 3
+            beta = 3 / (8 * neibr_len);
+            center = 1 - neibr_len * beta;
+        }
+
+        // 2.3 get new position using weights
+        QVector3D u(0,0,0);
+        u += vertices[i].position * center;
+
+        for (int id : neibr) {
+            u += vertices[id].position * beta;
+        }
+
+        newVec.push_back(u);
+    }
+
+    // 3. process odd vertices
+    for (size_t i = even_v_len; i < vertices.size(); i++) {
+
+    }
+
+    // 4. replace with new coordinates
+    for (size_t i = 0; i < even_v_len; i++) {
+        vertices[i].position = newVec[i];
+    }
+
+    debug_print("finished loop subd");
 }
 
 void Mesh::storeVBO() {
