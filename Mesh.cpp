@@ -247,8 +247,59 @@ void Mesh::smooth() {
     }
 }
 
-void Mesh::sharpen(){
-    // ???
+void Mesh::sharpen(float factor){
+    /*
+        For every original vertex v
+
+        1. find vertex g as if we run smooth
+        2. d = g - v
+        3. d` = d / ||d||
+        4. d`` = - d`
+        5. v` = v + d`` * esp (need to figure out what a proper esp is)
+    */
+
+    compute_average_edge_lengths();
+
+    // 1. store g's in this vector
+    vector<QVector3D> smoothedVertices;
+
+    for (size_t iv = 0; iv < vertices.size(); iv++){
+        QVector3D currPst = vertices[iv].position;
+        float sigma = vertices[iv].avgEdgeLength;
+        float norm_const = 0;
+        QVector3D point(0,0,0);
+
+        for (size_t iu = 0; iu < vertices[iv].edges.size(); iu++){
+            int neighborId = vertices[iv].edges[iu].startVertexID == iv ? vertices[iv].edges[iu].endVertexID : vertices[iv].edges[iu].startVertexID;
+
+            QVector3D neibPst = vertices[neighborId].position;
+
+            float gauss = gaussian(currPst.x(), currPst.y(), currPst.z(), neibPst.x(), neibPst.y(),neibPst.z(),sigma);
+            norm_const += gauss;
+            point += gauss * neibPst;
+        }
+
+        QVector3D pos = (point + currPst) / (norm_const + 1);
+        // QVector3D pos = vertices[iv].position;
+        smoothedVertices.push_back(pos);
+    }
+
+    for (size_t iv = 0; iv < vertices.size(); iv++){
+        // 2. d = g - v
+        QVector3D d = smoothedVertices[iv] - vertices[iv].position;
+
+        // 3. d` = d / ||d||
+        QVector3D dprime = d / sqrt(d.x()*d.x() + d.y()*d.y() + d.z()*d.z());
+
+        // 4. d`` = -d`
+        dprime = -1 * dprime;
+
+        // 5. v` = v + d`` * eps
+        QVector3D vprime = vertices[iv].position + dprime * factor;
+
+        // replace
+        vertices[iv].position = vprime;
+    }
 }
 
 int Mesh::check_and_add(map<Mesh_Edge*,Mesh_Vertex*>& edgeToMidpointMap, vector<Mesh_Edge>& newEdges, Mesh_Edge* midpointEdge, Mesh_Vertex* midpoint) {

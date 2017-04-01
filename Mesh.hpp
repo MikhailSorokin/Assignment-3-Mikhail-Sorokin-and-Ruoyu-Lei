@@ -106,7 +106,7 @@ struct Mesh {
     void inflate(float factor);
     void random_noise(float factor);
     void smooth();
-    void sharpen();
+    void sharpen(float factor);
     void split_faces();
 };
 
