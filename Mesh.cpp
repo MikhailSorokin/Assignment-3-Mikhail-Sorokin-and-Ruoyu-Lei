@@ -251,15 +251,25 @@ void Mesh::sharpen(){
     // ???
 }
 
-void Mesh::check_and_add(map<Mesh_Edge*,Mesh_Vertex*>& edgeToMidpointMap, Mesh_Edge* midpointEdge, Mesh_Vertex midpoint) {
-    if (edgeToMidpointMap.count(midpointEdge)) {
-        edgeToMidpointMap[midpointEdge] = &midpoint;
-        vertices.push_back(midpoint);
+int Mesh::check_and_add(map<Mesh_Edge*,Mesh_Vertex*>& edgeToMidpointMap, vector<Mesh_Edge>& newEdges, Mesh_Edge* midpointEdge, Mesh_Vertex* midpoint) {
+    if (edgeToMidpointMap.find(midpointEdge) == edgeToMidpointMap.end()) {
+        edgeToMidpointMap[midpointEdge] = midpoint;
+        vertices.push_back(*midpoint);
+        vertices[midpointEdge->startVertexID].edges.push_back(*midpointEdge);
+        vertices[midpointEdge->endVertexID].edges.push_back(*midpointEdge);
+        newEdges.push_back(*midpointEdge);
+
+        cout << "AGH" << endl;
+
+        return vertices.size() - 1;
     }
+
+    return midpointEdge->endVertexID; //endVertexID will always be our new ID
 }
 
-Mesh_Vertex Mesh::get_midpoint_vertex(QVector3D a, QVector3D b) {
-    return Mesh_Vertex((a.x() + b.x())/2, (a.y() + b.y())/2, (a.z() + b.z())/2);
+Mesh_Vertex* Mesh::get_midpoint_vertex(QVector3D a, QVector3D b) {
+    Mesh_Vertex* mid = new Mesh_Vertex((a.x() + b.x())/2, (a.y() + b.y())/2, (a.z() + b.z())/2);
+    return mid;
 }
 
 void Mesh::add_edges(int start, int end, int index, string key, unordered_map<string,int>& h_edges, vector<vector<Mesh_Edge>>& n_edges) {
@@ -287,12 +297,17 @@ void Mesh::split_faces(){
 
     //1. A hash table of to keep track of new edges added to the original vertices.
     // This does not include new edges between new vertices because they must be new.
-    map<Mesh_Edge*,Mesh_Vertex*> positionMapped;
+    map<Mesh_Edge*,Mesh_Vertex*> midEdgeToPoint;
 
     //2. Add new faces to this vector array.
     vector<Mesh_Face> newFaces;
 
-    //3. Iterate through all faces and add all new faces with vedges to the newFaces vector.
+    //3. Clear all edges within the vertices
+    for (int vi = 0; vi < vertices.size(); vi++) {
+        vertices[vi].edges.clear();
+    }
+
+    //4. Iterate through all faces and add all new faces with vedges to the newFaces vector.
     for (Mesh_Face& face: faces) {
         //Original vertex indices
         int og1 = face.vert[0];
@@ -304,69 +319,31 @@ void Mesh::split_faces(){
         int new2 = vertices.size() + 1;
         int new3 = vertices.size() + 2;
 
-        //4. Get the midpoints between every vertex in current face.
-        Mesh_Vertex midPoint1 = get_midpoint_vertex(vertices[og1], vertices[og2]);
-        check_and_add(
-                    )
-        Mesh_Vertex midPoint2 = get_midpoint_vertex(vertices[og1], vertices[og3]);
-        Mesh_Vertex midPoint3 = get_midpoint_vertex(vertices[og2], vertices[og3]);
+        //5. Get the midpoints between every vertex in current face.
+        vector<Mesh_Edge> newEdges;
 
+        //Midpoints of OG 1 and 2
+        auto midPoint1 = get_midpoint_vertex(vertices[og1].position, vertices[og2].position);
+        Mesh_Edge* m11 = new Mesh_Edge(og1, new1);
+        Mesh_Edge* m12 = new Mesh_Edge(og2, new1);
+        new1 = check_and_add(midEdgeToPoint, newEdges, m11, midPoint1);
+        check_and_add(midEdgeToPoint, newEdges, m12, midPoint1);
 
+        //Midpoints of OG 1 and 3
+        auto midPoint2 = get_midpoint_vertex(vertices[og1].position, vertices[og3].position);
+        Mesh_Edge* m21 = new Mesh_Edge(og1, new2);
+        Mesh_Edge* m22 = new Mesh_Edge(og3, new2);
+        new2 = check_and_add(midEdgeToPoint, newEdges, m21, midPoint2);
+        check_and_add(midEdgeToPoint, newEdges, m22, midPoint2);
 
-        for (int i = 0; i < 3; i++) {
-            //4. Add midpoints at every edge connecting current vertex.
-            QVector3D startPosition = vertices[0].position;
-            QVector3D endPosition = vertices[(i + 1) % 3].position;
+        //Midpoints of OG 2 and 3
+        auto midPoint3 = get_midpoint_vertex(vertices[og2].position, vertices[og3].position);
+        Mesh_Edge* m31 = new Mesh_Edge(og2, new3);
+        Mesh_Edge* m32 = new Mesh_Edge(og3, new3);
+        new3 = check_and_add(midEdgeToPoint, newEdges, m31, midPoint3);
+        check_and_add(midEdgeToPoint, newEdges, m32, midPoint3);
 
-
-            vector<Mesh_Edge> adjEdges = vertices[face.vert[i]].edges;
-
-
-
-            for (Mesh_Edge& adjEdge : adjEdges) {
-                QVector3D startPosition = vertices[adjEdge.startVertexID].position;
-                QVector3D endPosition = vertices[adjEdge.endVertexID].position;
-
-                Mesh_Vertex midPoint = get_midpoint_vertex(startPosition, endPosition);
-                if (positionMapped.count(&adjEdge) != 1) {
-                    positionMapped[&adjEdge] = &midPoint;
-                    vertices.push_back(midPoint);
-                }
-            }
-
-            //Delete the edges from original edges
-            adjEdges.clear();
-        }
-
-        //Delete the face from original list
-        for (Mesh_Face &oldFace : faces) {
-            if ((&oldFace) == (&face)) {
-                oldFace = faces.back();
-                faces.pop_back();
-                break;
-            }
-
-            delete (&face);
-        }
-
-
-        cout << "HERE" << endl;
-
-
-        vertices[og1].edges.push_back(Mesh_Edge(og1, new1));
-        vertices[og1].edges.push_back(Mesh_Edge(og1, new2));
-        vertices[new1].edges.push_back(Mesh_Edge(og1, new1));
-        vertices[new1].edges.push_back(Mesh_Edge(og1, new2));
-
-        vertices[og2].edges.push_back(Mesh_Edge(og2, new1));
-        vertices[og2].edges.push_back(Mesh_Edge(og2, new3));
-        vertices[new2].edges.push_back(Mesh_Edge(og2, new1));
-        vertices[new2].edges.push_back(Mesh_Edge(og2, new3));
-
-        vertices[og3].edges.push_back(Mesh_Edge(og3, new2));
-        vertices[og3].edges.push_back(Mesh_Edge(og3, new3));
-        vertices[new3].edges.push_back(Mesh_Edge(og3, new2));
-        vertices[new3].edges.push_back(Mesh_Edge(og3, new3));
+        //6. Connect all midpoints
 
         // create 3 new edges: xy, xz, yz
         // put them into n_edges
@@ -383,6 +360,7 @@ void Mesh::split_faces(){
         vertices[new3].edges.push_back(new13);
         vertices[new3].edges.push_back(new23);
 
+
         //create new faces: one, two, three, four
         // a x y => one
         // x b z => two
@@ -393,12 +371,16 @@ void Mesh::split_faces(){
         Mesh_Face three = Mesh_Face(new1,new2,new3);
         Mesh_Face four = Mesh_Face(new2,new3,og3);
 
-        faces.push_back(one);
-        faces.push_back(two);
-        faces.push_back(three);
-        faces.push_back(four);
-
+        newFaces.push_back(one);
+        newFaces.push_back(two);
+        newFaces.push_back(three);
+        newFaces.push_back(four);
     }
+
+    faces = newFaces;
+
+    //TODO: Delete dynamically allocated stuff from memory
+    //for (auto& p : midEdgeToPoint) { delete p.first; delete p.second; }
 
     clock_t endtime = clock();
 
