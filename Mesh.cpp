@@ -289,155 +289,108 @@ void Mesh::split_faces(){
 
     // a hash table to keep track of new edges added to the original vertices
     // this does not include new edges between new vertices because they must be new
-    unordered_map<string,int> h_edges;
+    map<Mesh_Edge*,Mesh_Vertex*> positionMapped;
 
-    // a nested vector to store the new edges.
-    // index is corresponding to the index in vertices
-    vector<vector<Mesh_Edge>> n_edges(vertices.size() * 4);
+    //Make a copy of facesToDelete so that we don't have to delete OG faces
+    vector<Mesh_Face> facesToDelete(faces);
 
-    // a vector that stores new faces
-    // this will replace the original faces vector in the end
-    vector<Mesh_Face> n_faces;
+    for (Mesh_Face& face: facesToDelete) {
+        int og1 = face.vert[0];
+        int og2 = face.vert[1];
+        int og3 = face.vert[2];
 
-    // a nested vector to store new adjacent faces
-    // this will replace the original facesAdjVertex in the end
-    vector<vector<Mesh_Face>> n_f_adj(vertices.size() * 4);
+        //This will be the indices of all of the new vertices
+        int new1 = vertices.size() - 1;
+        int new2 = vertices.size();
+        int new3 = vertices.size() + 1;
 
-    // same some memory
-    facesAdjVertex.clear();
+        for (int i = 0; i < 3; i++) {
+            //Add midpoints
+            vector<Mesh_Edge> adjEdges = vertices[face.vert[i]].edges;
 
-    // long vert_counter = vertices.size();
+            for (Mesh_Edge& adjEdge : adjEdges) {
+                QVector3D startPosition = vertices[adjEdge.startVertexID].position;
+                QVector3D endPosition = vertices[adjEdge.endVertexID].position;
 
-    for (Mesh_Face& face: faces) {
-        // 0. get 3 original vertices
-        int a = face.vert[0];
-        int b = face.vert[1];
-        int c = face.vert[2];
+                Mesh_Vertex midPoint = get_midpoint_vertex(startPosition, endPosition);
+                if (positionMapped.count(&adjEdge) != 1) {
+                    positionMapped[&adjEdge] = &midPoint;
+                    vertices.push_back(midPoint);
+                }
+            }
 
-        // 1. determine 3 midpoints and add them into vertices (if new)
-        // a - x - b
-        // a - y - c
-        // b - z - c
-
-        int x = -1, y = -1, z = -1;
-
-        // the first index is always less than the second one
-        string ab,ac,bc;
-        ab = a < b ? to_string(a)+","+to_string(b) : to_string(b)+","+to_string(a);
-        ac = a < c ? to_string(a)+","+to_string(c) : to_string(c)+","+to_string(a);
-        bc = b < c ? to_string(b)+","+to_string(c) : to_string(c)+","+to_string(b);
-
-        int ab_result = check_vertex(h_edges,ab);
-        if (ab_result == -1) {
-            auto midpoint = get_midpoint_vertex(vertices[a].position,vertices[b].position);
-            vertices.push_back(midpoint);
-
-            x = vertices.size() - 1;
-        } else {
-            x = ab_result;
+            //Delete the edges from original edges
+            adjEdges.clear();
         }
 
-        int ac_result = check_vertex(h_edges,ac);
-        if (ac_result == -1) {
-            auto midpoint = get_midpoint_vertex(vertices[a].position,vertices[c].position);
-            vertices.push_back(midpoint);
+        //Delete the face from original list
+        for (Mesh_Face &oldFace : faces) {
+            if ((&oldFace) == (&face)) {
+                oldFace = faces.back();
+                faces.pop_back();
+                break;
+            }
 
-            y = vertices.size() - 1;
-        } else {
-            y = ac_result;
+            delete (&face);
         }
 
-        int bc_result = check_vertex(h_edges,bc);
-        if (bc_result == -1) {
-            auto midpoint = get_midpoint_vertex(vertices[b].position,vertices[c].position);
-            vertices.push_back(midpoint);
 
-            z = vertices.size() - 1;
-        } else {
-            z = bc_result;
-        }
+        cout << "HERE" << endl;
 
-        // 2. create 6 new edges and add into n_edges
-        // ax, ay, bx, bz, cy, cz
 
-        // check with h_edges and skip the edges that already exist
-        // after putting into n_edges, put new vertices into h_edges
+        vertices[og1].edges.push_back(Mesh_Edge(og1, new1));
+        vertices[og1].edges.push_back(Mesh_Edge(og1, new2));
+        vertices[new1].edges.push_back(Mesh_Edge(og1, new1));
+        vertices[new1].edges.push_back(Mesh_Edge(og1, new2));
 
-        add_edges(a,b,x,ab,h_edges,n_edges);
-        add_edges(a,c,y,ac,h_edges,n_edges);
-        add_edges(b,c,z,bc,h_edges,n_edges);
+        vertices[og2].edges.push_back(Mesh_Edge(og2, new1));
+        vertices[og2].edges.push_back(Mesh_Edge(og2, new3));
+        vertices[new2].edges.push_back(Mesh_Edge(og2, new1));
+        vertices[new2].edges.push_back(Mesh_Edge(og2, new3));
 
-        // 3. create 3 new edges: xy, xz, yz
+        vertices[og3].edges.push_back(Mesh_Edge(og3, new2));
+        vertices[og3].edges.push_back(Mesh_Edge(og3, new3));
+        vertices[new3].edges.push_back(Mesh_Edge(og3, new2));
+        vertices[new3].edges.push_back(Mesh_Edge(og3, new3));
+
+        // create 3 new edges: xy, xz, yz
         // put them into n_edges
+        Mesh_Edge new12 = Mesh_Edge(new1,new2);
+        Mesh_Edge new13 = Mesh_Edge(new1,new3);
+        Mesh_Edge new23 = Mesh_Edge(new2,new3);
 
-        Mesh_Edge xy = Mesh_Edge(x,y);
-        Mesh_Edge xz = Mesh_Edge(x,z);
-        Mesh_Edge yz = Mesh_Edge(y,z);
+        vertices[new1].edges.push_back(new12);
+        vertices[new1].edges.push_back(new13);
 
-        n_edges[x].push_back(xy);
-        n_edges[x].push_back(xz);
+        vertices[new2].edges.push_back(new12);
+        vertices[new2].edges.push_back(new23);
 
-        n_edges[y].push_back(xy);
-        n_edges[y].push_back(yz);
+        vertices[new3].edges.push_back(new13);
+        vertices[new3].edges.push_back(new23);
 
-        n_edges[z].push_back(xz);
-        n_edges[z].push_back(yz);
-
-        // 4. create new faces: one, two, three, four
+        //create new faces: one, two, three, four
         // a x y => one
         // x b z => two
         // x y z => three
         // y z c => four
+        Mesh_Face one = Mesh_Face(og1,new1,new2);
+        Mesh_Face two = Mesh_Face(new1,og2,new3);
+        Mesh_Face three = Mesh_Face(new1,new2,new3);
+        Mesh_Face four = Mesh_Face(new2,new3,og3);
 
-        Mesh_Face one = Mesh_Face(a,x,y);
-        Mesh_Face two = Mesh_Face(x,b,z);
-        Mesh_Face three = Mesh_Face(x,y,z);
-        Mesh_Face four = Mesh_Face(y,z,c);
+        faces.push_back(one);
+        faces.push_back(two);
+        faces.push_back(three);
+        faces.push_back(four);
 
-        // push them into n_faces
-        n_faces.push_back(one);
-        n_faces.push_back(two);
-        n_faces.push_back(three);
-        n_faces.push_back(four);
-
-        // 5. add faces into n_f_adj
-        n_f_adj[a].push_back(one);
-        n_f_adj[x].push_back(one);
-        n_f_adj[y].push_back(one);
-
-        n_f_adj[x].push_back(two);
-        n_f_adj[b].push_back(two);
-        n_f_adj[z].push_back(two);
-
-        n_f_adj[x].push_back(three);
-        n_f_adj[y].push_back(three);
-        n_f_adj[z].push_back(three);
-
-        n_f_adj[y].push_back(four);
-        n_f_adj[z].push_back(four);
-        n_f_adj[c].push_back(four);
-
-        // end of for loop
     }
 
-    // 6. replace faces with n_faces
-    faces = n_faces;
-
-    // 7. replace facesAdjVertex with n_f_adj
-    auto start = n_f_adj.begin();
-    auto end = n_f_adj.begin() + vertices.size();
-
-    vector<vector<Mesh_Face>> newVec(start,end);
-    facesAdjVertex = newVec;
-
-    // 8. update edges in vertices
-    for (size_t i = 0; i < vertices.size(); i++) {
-        vertices[i].edges = n_edges[i];
-    }
-    
     clock_t endtime = clock();
+
     double elapsed_secs = double(endtime - begin) / CLOCKS_PER_SEC;
-    debug_print("split faces run for "+to_string(elapsed_secs)+" seconds");
+    cout << "split faces run for " + to_string(elapsed_secs) << " seconds" << endl;
+
+
 }
 
 void Mesh::storeVBO() {

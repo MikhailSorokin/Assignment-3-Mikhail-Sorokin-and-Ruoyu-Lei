@@ -43,6 +43,7 @@ struct Mesh_Vertex {
     Mesh_Vertex(float x, float y, float z) {
         position = QVector3D(x,y,z);
     }
+
     QVector3D position;
     float avgEdgeLength;
     QVector3D normal;
