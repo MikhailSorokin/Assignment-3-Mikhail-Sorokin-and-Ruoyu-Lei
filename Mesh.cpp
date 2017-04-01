@@ -441,6 +441,10 @@ void Mesh::split_faces(){
 
 }
 
+void Mesh::split_long_edges(){
+
+}
+
 void Mesh::storeVBO() {
     vector<QVector3D> tri_vert, tri_bary;
 

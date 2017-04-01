@@ -395,7 +395,11 @@ void GLview::starFaces()
 
 void GLview::splitLongEdges()
 {
-    cout << "implement splitLongEdges()\n";
+    cout << "implement splitLongFaces()\n";
+
+    if(mesh == NULL) return;
+    mesh->split_long_edges();
+    update_mesh();
 }
 
 void GLview::collapseShortEdges()

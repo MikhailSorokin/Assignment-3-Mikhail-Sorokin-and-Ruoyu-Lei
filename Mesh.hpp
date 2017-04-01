@@ -108,6 +108,7 @@ struct Mesh {
     void smooth();
     void sharpen(float factor);
     void split_faces();
+    void split_long_edges();
 };
 
 #endif // __MESH_HPP__
