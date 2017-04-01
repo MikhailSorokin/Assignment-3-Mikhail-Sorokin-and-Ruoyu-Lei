@@ -251,12 +251,10 @@ void Mesh::sharpen(){
     // ???
 }
 
-int Mesh::check_vertex(unordered_map<string,int> map, string key) {
-    auto f = map.find(key);
-    if (f == map.end()) {
-        return -1;
-    } else {
-        return map[key];
+void Mesh::check_and_add(map<Mesh_Edge*,Mesh_Vertex*>& edgeToMidpointMap, Mesh_Edge* midpointEdge, Mesh_Vertex midpoint) {
+    if (edgeToMidpointMap.count(midpointEdge)) {
+        edgeToMidpointMap[midpointEdge] = &midpoint;
+        vertices.push_back(midpoint);
     }
 }
 
@@ -287,26 +285,43 @@ void Mesh::add_edges(int start, int end, int index, string key, unordered_map<st
 void Mesh::split_faces(){
     clock_t begin = clock();
 
-    // a hash table to keep track of new edges added to the original vertices
-    // this does not include new edges between new vertices because they must be new
+    //1. A hash table of to keep track of new edges added to the original vertices.
+    // This does not include new edges between new vertices because they must be new.
     map<Mesh_Edge*,Mesh_Vertex*> positionMapped;
 
-    //Make a copy of facesToDelete so that we don't have to delete OG faces
-    vector<Mesh_Face> facesToDelete(faces);
+    //2. Add new faces to this vector array.
+    vector<Mesh_Face> newFaces;
 
-    for (Mesh_Face& face: facesToDelete) {
+    //3. Iterate through all faces and add all new faces with vedges to the newFaces vector.
+    for (Mesh_Face& face: faces) {
+        //Original vertex indices
         int og1 = face.vert[0];
         int og2 = face.vert[1];
         int og3 = face.vert[2];
 
-        //This will be the indices of all of the new vertices
-        int new1 = vertices.size() - 1;
-        int new2 = vertices.size();
-        int new3 = vertices.size() + 1;
+        //This will be the indices of all new vertices
+        int new1 = vertices.size();
+        int new2 = vertices.size() + 1;
+        int new3 = vertices.size() + 2;
+
+        //4. Get the midpoints between every vertex in current face.
+        Mesh_Vertex midPoint1 = get_midpoint_vertex(vertices[og1], vertices[og2]);
+        check_and_add(
+                    )
+        Mesh_Vertex midPoint2 = get_midpoint_vertex(vertices[og1], vertices[og3]);
+        Mesh_Vertex midPoint3 = get_midpoint_vertex(vertices[og2], vertices[og3]);
+
+
 
         for (int i = 0; i < 3; i++) {
-            //Add midpoints
+            //4. Add midpoints at every edge connecting current vertex.
+            QVector3D startPosition = vertices[0].position;
+            QVector3D endPosition = vertices[(i + 1) % 3].position;
+
+
             vector<Mesh_Edge> adjEdges = vertices[face.vert[i]].edges;
+
+
 
             for (Mesh_Edge& adjEdge : adjEdges) {
                 QVector3D startPosition = vertices[adjEdge.startVertexID].position;
