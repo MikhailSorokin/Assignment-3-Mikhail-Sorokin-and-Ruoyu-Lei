@@ -18,6 +18,13 @@ struct Mesh_Face {
     }
     long vert[3]; // indices (in the vertex array) of all vertices (mesh_vertex)
     QVector3D faceNormal;
+
+    bool operator==(const Mesh_Face &other) const
+        {
+            return vert[0] == other.vert[0] &&
+            vert[1] == other.vert[1] &&
+            vert[2] == other.vert[2] ;
+        }
 };
 
 
@@ -54,8 +61,14 @@ struct Mesh_Edge {
     }
 
     bool operator==(const Mesh_Edge &other) const
-      { return (startVertexID == other.startVertexID
-                && endVertexID == other.endVertexID);
+      { if (startVertexID == other.startVertexID
+                && endVertexID == other.endVertexID) {
+        return true;
+      } else if (startVertexID == other.endVertexID && endVertexID == other.startVertexID) {
+        return true;
+      } else {
+        return false;
+      }
       }
 
     int startVertexID;
@@ -98,6 +111,7 @@ struct Mesh {
     Mesh_Vertex* get_midpoint_vertex(QVector3D a, QVector3D b);
     int check_and_add(map<Mesh_Edge*,Mesh_Vertex*>& edgeToMidpointMap, vector<Mesh_Edge>& newEdges, Mesh_Edge* midpointEdge, Mesh_Vertex* midpoint);
     void add_edges(int start, int end, int index, string key, unordered_map<string,int>& h_edges, vector<vector<Mesh_Edge>>& n_edges);
+    vector<int> intersected_face(vector<Mesh_Face> f1,vector<Mesh_Face> f2, int v1 ,int v2);
 
     //MUST IMPLEMENT
     void compute_average_edge_lengths();
@@ -109,6 +123,7 @@ struct Mesh {
     void sharpen(float factor);
     void split_faces();
     void split_long_edges();
+    void loop_subdivision();
 };
 
 #endif // __MESH_HPP__

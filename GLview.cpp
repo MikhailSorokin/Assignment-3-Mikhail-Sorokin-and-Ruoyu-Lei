@@ -454,6 +454,10 @@ void GLview::meshSimplification()
 void GLview::loopSubdivision()
 {
     cout << "implement loopSubdivision()\n";
+
+    if(mesh == NULL) return;
+    mesh->loop_subdivision();
+    update_mesh();
 }
 
 void GLview::flipEdges()

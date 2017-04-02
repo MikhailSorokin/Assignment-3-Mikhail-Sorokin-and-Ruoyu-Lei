@@ -310,7 +310,7 @@ int Mesh::check_and_add(map<Mesh_Edge*,Mesh_Vertex*>& edgeToMidpointMap, vector<
         vertices[midpointEdge->endVertexID].edges.push_back(*midpointEdge);
         newEdges.push_back(*midpointEdge);
 
-        cout << "AGH" << endl;
+        // cout << "AGH" << endl;
 
         return vertices.size() - 1;
     }
@@ -366,19 +366,25 @@ void Mesh::split_faces(){
         int og3 = face.vert[2];
 
         //This will be the indices of all new vertices
+        /*
         int new1 = vertices.size();
         int new2 = vertices.size() + 1;
         int new3 = vertices.size() + 2;
+        */
 
         //5. Get the midpoints between every vertex in current face.
         vector<Mesh_Edge> newEdges;
 
         //Midpoints of OG 1 and 2
+        /*
         auto midPoint1 = get_midpoint_vertex(vertices[og1].position, vertices[og2].position);
         Mesh_Edge* m11 = new Mesh_Edge(og1, new1);
         Mesh_Edge* m12 = new Mesh_Edge(og2, new1);
         new1 = check_and_add(midEdgeToPoint, newEdges, m11, midPoint1);
         check_and_add(midEdgeToPoint, newEdges, m12, midPoint1);
+        */
+
+
 
         //Midpoints of OG 1 and 3
         auto midPoint2 = get_midpoint_vertex(vertices[og1].position, vertices[og3].position);
@@ -443,6 +449,136 @@ void Mesh::split_faces(){
 
 void Mesh::split_long_edges(){
 
+}
+
+vector<int> Mesh::intersected_face(vector<Mesh_Face> f1,vector<Mesh_Face> f2, int v1 ,int v2) {
+    vector<int> r;
+    vector<Mesh_Face> m;
+
+    for (Mesh_Face& a : f1) {
+        for (Mesh_Face& b : f2) {
+            if (a == b)
+                m.push_back(a);
+        }
+    }
+
+    for (Mesh_Face a : m) {
+        for (int i = 0; i < 3; i++) {
+            if (a.vert[i] != v1 && a.vert[i] != v2) {
+                r.push_back(a.vert[i]);
+            }
+        }
+    }
+
+    return r;
+}
+
+void Mesh::loop_subdivision() {
+    int even_v_len = vertices.size();
+
+    compute_vertex_normals();
+
+    // vector<Mesh_Face> oldFaces(faces);
+    vector<vector<Mesh_Face>> oldAdjFaces(facesAdjVertex);
+
+    vector<QVector3D> newVec;
+
+    // 1. run split faces
+    split_faces();
+    int hm = 0;
+    for (int i = even_v_len; i < vertices.size(); i++) {
+        //for (int a = 0; a < 3; a++){
+            debug_print("odd vertice edges = "+to_string(vertices[i].edges.size()));
+        //}
+    }
+
+
+    compute_average_edge_lengths();
+
+    // 2. process even vertices
+    for (int i = 0; i < even_v_len; i++) {
+
+        // 2.1 get all neighbor vertice
+        vector<int> neibr;
+        for (Mesh_Edge& edge : vertices[i].edges) {
+            int id = edge.startVertexID == i ? edge.endVertexID : edge.startVertexID;
+            neibr.push_back(id);
+        }
+
+        // 2.2 get beta and center
+        float beta = 0, center = 0;
+        int neibr_len = neibr.size();
+
+        if (neibr_len == 3) {
+            beta = 3/16;
+            center = 1 - neibr_len * beta;
+        } else if (neibr_len == 2) {
+            beta = 1/8;
+            center = 3/4;
+        } else if (neibr_len == 0 || neibr_len == 1) {
+            // this does happen but why?
+            // debug_print("size of neibr is "+to_string(vertices[i].edges.size()));
+            center = 1;
+        } else {   
+            // > 3
+            beta = 3 / (8 * neibr_len);
+            center = 1 - neibr_len * beta;
+        }
+
+        // 2.3 get new position using weights
+        QVector3D u(0,0,0);
+        u += vertices[i].position * center;
+
+        for (int id : neibr) {
+            u += vertices[id].position * beta;
+        }
+
+        newVec.push_back(u);
+    }
+
+    int c = 0;
+    // 3. process odd vertices
+    for (size_t i = even_v_len; i < vertices.size(); i++) {
+        // 3.1 get two nearest vertices
+        vector<int> v1v2;
+
+        for (Mesh_Edge e : vertices[i].edges) {
+            if (e.startVertexID == i && e.endVertexID < even_v_len) {
+                v1v2.push_back(e.endVertexID);
+            } else if (e.endVertexID == i && e.startVertexID < even_v_len){
+                v1v2.push_back(e.startVertexID);
+            }
+        }
+        if (v1v2.size() != 2) {
+            debug_print("v1v2.size !=2, ="+to_string(v1v2.size()));
+            continue;
+        }
+
+        // 3.2 get two distant vertices
+
+
+        // find intersected face(s) of the two vertices in v1v2
+        vector<int> intersec = intersected_face(oldAdjFaces[v1v2[0]],oldAdjFaces[v1v2[1]],v1v2[0],v1v2[1]);
+
+        if (intersec.size() < 2) {
+            QVector3D t = 0.5 * (vertices[v1v2[0]].position + vertices[v1v2[1]].position);
+            newVec.push_back(t);
+        } else if (intersec.size() == 2) {
+            QVector3D t = ((3/8) * (vertices[v1v2[0]].position + vertices[v1v2[1]].position)) + 
+                ((1/8) * (vertices[intersec[0]].position +  vertices[intersec[1]].position));
+        } else {
+            debug_print("more than 2? this should not happen");
+        }
+        c++;
+    }
+    debug_print(to_string(c)+" odd vetices processed");
+
+    // 4. replace with new coordinates
+    for (size_t i = 0; i < even_v_len; i++) {
+        vertices[i].position = newVec[i];
+    }
+
+    debug_print("finished loop subd");
 }
 
 void Mesh::storeVBO() {
