@@ -61,8 +61,7 @@ struct Mesh_Edge {
     }
 
     bool operator==(const Mesh_Edge &other) const
-      { if (startVertexID == other.startVertexID
-                && endVertexID == other.endVertexID) {
+      { if (startVertexID == other.startVertexID && endVertexID == other.endVertexID) {
         return true;
       } else if (startVertexID == other.endVertexID && endVertexID == other.startVertexID) {
         return true;
@@ -109,8 +108,7 @@ struct Mesh {
     float length(QVector3D edgeVector);
     float gaussian(float x, float y, float z, float u, float v, float w, float sigma);
     Mesh_Vertex* get_midpoint_vertex(QVector3D a, QVector3D b);
-    int check_and_add(map<Mesh_Edge*,Mesh_Vertex*>& edgeToMidpointMap, vector<Mesh_Edge>& newEdges, Mesh_Edge* midpointEdge, Mesh_Vertex* midpoint);
-    void add_edges(int start, int end, int index, string key, unordered_map<string,int>& h_edges, vector<vector<Mesh_Edge>>& n_edges);
+    int check_and_add(map<Mesh_Edge,int>& edgeToMidpointMap, vector<Mesh_Edge>& newEdges, Mesh_Edge midpointEdge, Mesh_Vertex* midpoint);
     vector<int> intersected_face(vector<Mesh_Face> f1,vector<Mesh_Face> f2, int v1 ,int v2);
 
     //MUST IMPLEMENT

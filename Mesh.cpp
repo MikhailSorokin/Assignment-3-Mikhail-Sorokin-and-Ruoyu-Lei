@@ -302,20 +302,34 @@ void Mesh::sharpen(float factor){
     }
 }
 
-int Mesh::check_and_add(map<Mesh_Edge*,Mesh_Vertex*>& edgeToMidpointMap, vector<Mesh_Edge>& newEdges, Mesh_Edge* midpointEdge, Mesh_Vertex* midpoint) {
+int Mesh::check_and_add(map<Mesh_Edge,int>& edgeToMidpointMap, vector<Mesh_Edge>& newEdges, Mesh_Edge midpointEdge, Mesh_Vertex* midpoint) {
     if (edgeToMidpointMap.find(midpointEdge) == edgeToMidpointMap.end()) {
+        /*
         edgeToMidpointMap[midpointEdge] = midpoint;
         vertices.push_back(*midpoint);
         vertices[midpointEdge->startVertexID].edges.push_back(*midpointEdge);
         vertices[midpointEdge->endVertexID].edges.push_back(*midpointEdge);
         newEdges.push_back(*midpointEdge);
+        */
 
-        // cout << "AGH" << endl;
+        vertices.push_back(*midpoint);
+        int index = vertices.size() - 1;
+        edgeToMidpointMap[midpointEdge] = index;
 
-        return vertices.size() - 1;
+        Mesh_Edge e1(midpointEdge.startVertexID,index);
+        Mesh_Edge e2(midpointEdge.endVertexID,index);
+
+        vertices[midpointEdge.startVertexID].edges.push_back(e1);
+        vertices[midpointEdge.endVertexID].edges.push_back(e2);
+        vertices[index].edges.push_back(e1);
+        vertices[index].edges.push_back(e2);
+
+        return index;
+    } else {
+        int index = edgeToMidpointMap[midpointEdge];
+        // cout<< index << " already existed\n";
+        return index;
     }
-
-    return midpointEdge->endVertexID; //endVertexID will always be our new ID
 }
 
 Mesh_Vertex* Mesh::get_midpoint_vertex(QVector3D a, QVector3D b) {
@@ -323,32 +337,13 @@ Mesh_Vertex* Mesh::get_midpoint_vertex(QVector3D a, QVector3D b) {
     return mid;
 }
 
-void Mesh::add_edges(int start, int end, int index, string key, unordered_map<string,int>& h_edges, vector<vector<Mesh_Edge>>& n_edges) {
-    // string key = start < end ? to_string(start) + "," + to_string(end) : to_string(end) + "," + to_string(start);
-    auto f = h_edges.find(key);
-
-    if (f == h_edges.end()) {
-        // it's a new edge
-        Mesh_Edge e1 = Mesh_Edge(start,index);
-        Mesh_Edge e2 = Mesh_Edge(index,end);
-
-        n_edges[start].push_back(e1);
-        n_edges[index].push_back(e1);
-
-        n_edges[end].push_back(e2);
-        n_edges[index].push_back(e2);
-
-        // put new vertex into h_edges
-        h_edges[key] = index;
-    }
-}
 
 void Mesh::split_faces(){
     clock_t begin = clock();
 
     //1. A hash table of to keep track of new edges added to the original vertices.
     // This does not include new edges between new vertices because they must be new.
-    map<Mesh_Edge*,Mesh_Vertex*> midEdgeToPoint;
+    map<Mesh_Edge,int> midEdgeToPoint;
 
     //2. Add new faces to this vector array.
     vector<Mesh_Face> newFaces;
@@ -358,8 +353,12 @@ void Mesh::split_faces(){
         vertices[vi].edges.clear();
     }
 
+    int n1 = vertices.size();
     //4. Iterate through all faces and add all new faces with vedges to the newFaces vector.
     for (Mesh_Face& face: faces) {
+        // sort to keep order
+        sort(std::begin(face.vert),std::end(face.vert));
+
         //Original vertex indices
         int og1 = face.vert[0];
         int og2 = face.vert[1];
@@ -384,8 +383,11 @@ void Mesh::split_faces(){
         check_and_add(midEdgeToPoint, newEdges, m12, midPoint1);
         */
 
+        auto midPoint1 = get_midpoint_vertex(vertices[og1].position, vertices[og2].position);
+        Mesh_Edge m0 (og1,og2);
+        int new1 = check_and_add(midEdgeToPoint,newEdges,m0,midPoint1);
 
-
+        /*
         //Midpoints of OG 1 and 3
         auto midPoint2 = get_midpoint_vertex(vertices[og1].position, vertices[og3].position);
         Mesh_Edge* m21 = new Mesh_Edge(og1, new2);
@@ -399,6 +401,15 @@ void Mesh::split_faces(){
         Mesh_Edge* m32 = new Mesh_Edge(og3, new3);
         new3 = check_and_add(midEdgeToPoint, newEdges, m31, midPoint3);
         check_and_add(midEdgeToPoint, newEdges, m32, midPoint3);
+        */
+
+        auto midPoint2 = get_midpoint_vertex(vertices[og1].position, vertices[og3].position);
+        Mesh_Edge m1 (og1,og3);
+        int new2 = check_and_add(midEdgeToPoint,newEdges,m1,midPoint2);
+
+        auto midPoint3 = get_midpoint_vertex(vertices[og2].position, vertices[og3].position);
+        Mesh_Edge m2 (og2,og3);
+        int new3 = check_and_add(midEdgeToPoint,newEdges,m2,midPoint3);
 
         //6. Connect all midpoints
 
@@ -417,7 +428,6 @@ void Mesh::split_faces(){
         vertices[new3].edges.push_back(new13);
         vertices[new3].edges.push_back(new23);
 
-
         //create new faces: one, two, three, four
         // a x y => one
         // x b z => two
@@ -433,6 +443,8 @@ void Mesh::split_faces(){
         newFaces.push_back(three);
         newFaces.push_back(four);
     }
+
+    cout<<vertices.size() - n1 << " new vertices added\n";
 
     faces = newFaces;
 
@@ -485,15 +497,8 @@ void Mesh::loop_subdivision() {
 
     // 1. run split faces
     split_faces();
-    int hm = 0;
-    for (int i = even_v_len; i < vertices.size(); i++) {
-        //for (int a = 0; a < 3; a++){
-            debug_print("odd vertice edges = "+to_string(vertices[i].edges.size()));
-        //}
-    }
 
-
-    compute_average_edge_lengths();
+    // compute_average_edge_lengths();
 
     // 2. process even vertices
     for (int i = 0; i < even_v_len; i++) {
@@ -536,16 +541,19 @@ void Mesh::loop_subdivision() {
         newVec.push_back(u);
     }
 
+    cout<<"even vertices processed. Have "<<newVec.size()<<" in newVec now\n";
+
     int c = 0;
     // 3. process odd vertices
-    for (size_t i = even_v_len; i < vertices.size(); i++) {
+    for (int i = even_v_len; i < vertices.size(); i++) {
         // 3.1 get two nearest vertices
         vector<int> v1v2;
+        v1v2.clear();
 
-        for (Mesh_Edge e : vertices[i].edges) {
-            if (e.startVertexID == i && e.endVertexID < even_v_len) {
+        for (Mesh_Edge& e : vertices[i].edges) {
+            if (e.endVertexID < even_v_len) {
                 v1v2.push_back(e.endVertexID);
-            } else if (e.endVertexID == i && e.startVertexID < even_v_len){
+            } else if (e.startVertexID < even_v_len){
                 v1v2.push_back(e.startVertexID);
             }
         }
@@ -566,12 +574,13 @@ void Mesh::loop_subdivision() {
         } else if (intersec.size() == 2) {
             QVector3D t = ((3/8) * (vertices[v1v2[0]].position + vertices[v1v2[1]].position)) + 
                 ((1/8) * (vertices[intersec[0]].position +  vertices[intersec[1]].position));
+            newVec.push_back(t);
         } else {
-            debug_print("more than 2? this should not happen");
+            // debug_print("more than 2? this should not happen");
         }
         c++;
     }
-    debug_print(to_string(c)+" odd vetices processed");
+    cout<<"odd vertices processed. Have "<<newVec.size()<<" in newVec now\n";
 
     // 4. replace with new coordinates
     for (size_t i = 0; i < even_v_len; i++) {
