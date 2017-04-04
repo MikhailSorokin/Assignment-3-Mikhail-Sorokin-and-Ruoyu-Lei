@@ -110,6 +110,12 @@ struct Mesh {
     Mesh_Vertex* get_midpoint_vertex(QVector3D a, QVector3D b);
     int check_and_add(map<Mesh_Edge,int>& edgeToMidpointMap, vector<Mesh_Edge>& newEdges, Mesh_Edge midpointEdge, Mesh_Vertex* midpoint);
     vector<int> intersected_face(vector<Mesh_Face> f1,vector<Mesh_Face> f2, int v1 ,int v2);
+    float area(Mesh_Face face);
+    QVector3D centroid(Mesh_Face face);
+    float oneDGauss(float eps, float x);
+    float mean_edge();
+    int count_longer_than(float threshold, vector<Mesh_Edge>& long_edges, vector<Mesh_Face>& longFaces,vector<Mesh_Face>& goodFaces);
+    Mesh_Vertex get_midpoint(QVector3D a, QVector3D b);
 
     //MUST IMPLEMENT
     void compute_average_edge_lengths();
@@ -122,6 +128,7 @@ struct Mesh {
     void split_faces();
     void split_long_edges();
     void loop_subdivision();
+    void bilateral_smoothing();
 };
 
 #endif // __MESH_HPP__

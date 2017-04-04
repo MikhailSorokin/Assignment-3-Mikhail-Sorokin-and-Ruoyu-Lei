@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iomanip>
 #include <unordered_map>
+#include <set>
 #include <ctime>
 
 #include "Mesh.hpp"
@@ -337,6 +338,11 @@ Mesh_Vertex* Mesh::get_midpoint_vertex(QVector3D a, QVector3D b) {
     return mid;
 }
 
+Mesh_Vertex Mesh::get_midpoint(QVector3D a, QVector3D b) {
+    Mesh_Vertex mid ((a.x() + b.x())/2, (a.y() + b.y())/2, (a.z() + b.z())/2);
+    return mid;
+}
+
 
 void Mesh::split_faces(){
     clock_t begin = clock();
@@ -459,8 +465,209 @@ void Mesh::split_faces(){
 
 }
 
-void Mesh::split_long_edges(){
+int Mesh::count_longer_than(float threshold, vector<Mesh_Edge>& long_edges, vector<Mesh_Face>& longFaces, vector<Mesh_Face>& goodFaces) {
+    set<Mesh_Edge> edge_set;
+    int counter = 0;
 
+    long_edges.clear();
+    longFaces.clear();
+    goodFaces.clear();
+
+    for (Mesh_Face& face : faces) {
+
+        sort(std::begin(face.vert),std::end(face.vert));
+        int a = face.vert[0], b = face.vert[1], c = face.vert[2];
+
+        Mesh_Edge e1(a,b);
+        Mesh_Edge e2(a,c);
+        Mesh_Edge e3(b,c);
+
+        auto pop1 = vertices[a].position;
+        auto pop2 = vertices[b].position;
+        auto pop3 = vertices[c].position;
+
+        float dp1p2 = pop1.distanceToPoint(pop2);
+        float dp1p3 = pop1.distanceToPoint(pop3);
+        float dp2p3 = pop2.distanceToPoint(pop3);
+
+        if (dp1p2 > threshold || dp1p3 > threshold || dp2p3 > threshold) {
+            longFaces.push_back(face);
+        } else {
+            goodFaces.push_back(face);
+        }
+
+        if (edge_set.find(e1) == edge_set.end()){
+
+            if (dp1p2 > threshold) {
+                counter ++;
+                long_edges.push_back(e1);
+            }
+
+            edge_set.insert(e1);
+        }
+
+        if (edge_set.find(e2) == edge_set.end()){
+
+            if (dp1p3 > threshold) {
+                counter ++;
+                long_edges.push_back(e2);
+            }
+
+            edge_set.insert(e2);
+        }
+
+        if (edge_set.find(e3) == edge_set.end()){
+
+            if (dp2p3 > threshold) {
+                counter ++;
+                long_edges.push_back(e3);
+            }
+
+            edge_set.insert(e3);
+        }
+    }
+    cout<<"there are "<<counter<<" long edges\n";
+    return counter;
+}
+
+void Mesh::split_long_edges(){
+    //Construct the edges vector
+    for (Mesh_Face& face : faces) {
+        for (int vi = 0; vi < 3; vi++) {
+            vertices[face.vert[vi]].edges.push_back(Mesh_Edge(face.vert[vi], face.vert[(vi + 1) % 3]));
+            vertices[face.vert[vi]].edges.push_back(Mesh_Edge(face.vert[vi], face.vert[(vi + 2) % 3]));
+        }
+    }
+
+    // threshold
+    float length = (4/3) * mean_edge();
+
+    vector<Mesh_Edge> long_edges;
+    vector<Mesh_Face> long_faces;
+    vector<Mesh_Face> goodFaces;
+
+    while (count_longer_than(length,long_edges,long_faces,goodFaces) != 0) {
+        cout<<"inside while loop\n";
+        // need 3 passes
+        // 1. find out what the long edges are. in a set.
+        // 2. create midpoints on those edges. connect them with immediate vertices.
+        //  Also update edges for those two vertices.
+        //  Map the long edges with midpoints indices
+        // 3. go through faces that have long edges. If a face contains a long edge in the set, connect the midpoint
+        //  to the third point of the face, and don't add this face to the new face container.
+        //  Instead, create 2 new faces and put them into the new face container.
+        //  otherwise, put the face in the new face container
+        // 4. replace the faces vector with the new face container
+
+
+        // 1. find out what the long edges are. in a set => long_edges
+
+        // 2. create midpoints on those edges
+        map<Mesh_Edge,int> midpoints;
+
+        for (Mesh_Edge& edge : long_edges) {
+            Mesh_Vertex mid = get_midpoint(vertices[edge.startVertexID].position, vertices[edge.endVertexID].position);
+            cout<<"here1\n";
+            // map edge with vertex index
+            int index = vertices.size();
+            midpoints[edge] = index;
+
+            // update edges in midpoint
+            Mesh_Edge e1(index,edge.startVertexID);
+            Mesh_Edge e2(index,edge.endVertexID);
+            cout<<"here2\n";
+            mid.edges.push_back(e1);
+            mid.edges.push_back(e2);
+
+            // update edges in 2 original vertices
+            // first
+            int removal = -1;
+            for (int i = 0; i < vertices[edge.startVertexID].edges.size(); i++) {
+                if (vertices[edge.startVertexID].edges[i] == edge) {
+                    removal = i;
+                }
+            }
+            cout<<"here3 "<<"removal="<<removal<< "\n";
+            vertices[edge.startVertexID].edges.erase(vertices[edge.startVertexID].edges.begin() + removal);
+            vertices[edge.startVertexID].edges.push_back(e1);
+
+            // second
+            removal = -1;
+            for (int i = 0; i < vertices[edge.endVertexID].edges.size(); i++) {
+                if (vertices[edge.endVertexID].edges[i] == edge) {
+                    removal = i;
+                }
+            }
+            vertices[edge.endVertexID].edges.erase(vertices[edge.endVertexID].edges.begin() + removal);
+            vertices[edge.endVertexID].edges.push_back(e2);
+            cout<<"after second "<<"removal="<<removal<< "\n";
+            // push midpoint into vertices
+            vertices.push_back(mid);
+        }
+
+        // 3. go through faces that have long edges
+        vector<Mesh_Face> newFaces;
+        for (Mesh_Face& face : long_faces) {
+            cout<<"inside for 2 loop\n";
+            sort(std::begin(face.vert),std::end(face.vert));
+            int a = face.vert[0], b = face.vert[1], c = face.vert[2];
+
+            Mesh_Edge e1(a,b);
+            Mesh_Edge e2(a,c);
+            Mesh_Edge e3(b,c);
+
+            // create new faces
+            // and connect midpoint with the third point
+            int index = -1;
+            if (midpoints.find(e1) != midpoints.end()) {
+                index = midpoints[e1];
+                Mesh_Face nf1 (index,a,c);
+                Mesh_Face nf2 (index,b,c);
+
+                newFaces.push_back(nf1);
+                newFaces.push_back(nf2);
+
+                // connect
+                Mesh_Edge mt (index,c);
+                vertices[index].edges.push_back(mt);
+                vertices[c].edges.push_back(mt);
+            } else if (midpoints.find(e2) != midpoints.end()) {
+                index = midpoints[e2];
+                Mesh_Face nf1 (index,a,b);
+                Mesh_Face nf2 (index,b,c);
+
+                newFaces.push_back(nf1);
+                newFaces.push_back(nf2);
+
+                // connect
+                Mesh_Edge mt (index,b);
+                vertices[index].edges.push_back(mt);
+                vertices[b].edges.push_back(mt);
+            } else if (midpoints.find(e3) != midpoints.end()) {
+                index = midpoints[e3];
+                Mesh_Face nf1 (index,a,b);
+                Mesh_Face nf2 (index,a,c);
+
+                newFaces.push_back(nf1);
+                newFaces.push_back(nf2);
+
+                // connect
+                Mesh_Edge mt (index,a);
+                vertices[index].edges.push_back(mt);
+                vertices[a].edges.push_back(mt);
+            } else {
+                cout<<"this should not happen!\n";
+            }   
+        }
+
+        for (Mesh_Face& gf : goodFaces) {
+            newFaces.push_back(gf);
+        }
+
+        // replace
+        faces = newFaces;
+        cout<<"end of while loop\n";
+    }
 }
 
 vector<int> Mesh::intersected_face(vector<Mesh_Face> f1,vector<Mesh_Face> f2, int v1 ,int v2) {
@@ -588,6 +795,94 @@ void Mesh::loop_subdivision() {
     }
 
     debug_print("finished loop subd");
+}
+
+// get the area of a face
+float Mesh::area(Mesh_Face face){
+
+    QVector3D pop1 = vertices[face.vert[0]].position;
+    QVector3D pop2 = vertices[face.vert[1]].position;
+    QVector3D pop3 = vertices[face.vert[2]].position;
+
+    QVector3D BA = pop2 - pop1;
+    QVector3D CA = pop3 - pop1;
+
+    QVector3D cross =  QVector3D::crossProduct(BA, CA);
+    return 0.5 * length(cross);
+}
+
+// get the center of a face
+QVector3D Mesh::centroid(Mesh_Face face){
+    QVector3D pop1 = vertices[face.vert[0]].position;
+    QVector3D pop2 = vertices[face.vert[1]].position;
+    QVector3D pop3 = vertices[face.vert[2]].position;
+
+    QVector3D c(pop1.x() + pop2.x() + pop3.x(),
+        pop1.y() + pop2.y() + pop3.y(),
+        pop1.z() + pop2.z() + pop3.z()
+        );
+
+    return (1/3) * c;
+}
+
+// gauss
+float Mesh::oneDGauss(float eps, float x){
+    float gau = (-1) * (x * x)/(2 * eps * eps);
+
+    return exp(gau);
+}
+
+float Mesh::mean_edge(){
+    set<Mesh_Edge> edge_set;
+
+    float edge_sum = 0;
+
+    for (Mesh_Face& face : faces) {
+
+        sort(std::begin(face.vert),std::end(face.vert));
+        int a = face.vert[0], b = face.vert[1], c = face.vert[2];
+
+        Mesh_Edge e1(a,b);
+        Mesh_Edge e2(a,c);
+        Mesh_Edge e3(b,c);
+
+        auto pop1 = vertices[a].position;
+        auto pop2 = vertices[b].position;
+        auto pop3 = vertices[c].position;
+
+        if (edge_set.find(e1) == edge_set.end()){
+
+            edge_sum += pop1.distanceToPoint(pop2);
+            edge_set.insert(e1);
+        }
+
+        if (edge_set.find(e2) == edge_set.end()){
+
+            edge_sum += pop1.distanceToPoint(pop3);
+            edge_set.insert(e2);
+        }
+
+        if (edge_set.find(e3) == edge_set.end()){
+
+            edge_sum += pop2.distanceToPoint(pop3);
+            edge_set.insert(e3);
+        }
+    }
+
+    return edge_sum / edge_set.size();
+}
+
+void Mesh::bilateral_smoothing(){
+    
+    //Compute normals for every face
+    for (Mesh_Face& face : faces) {
+        QVector3D P0P1 = vertices[face.vert[1]].position - vertices[face.vert[0]].position;
+        QVector3D P0P2 = vertices[face.vert[2]].position - vertices[face.vert[0]].position;
+        face.faceNormal = QVector3D::crossProduct(P0P1, P0P2);
+    }
+
+
+
 }
 
 void Mesh::storeVBO() {

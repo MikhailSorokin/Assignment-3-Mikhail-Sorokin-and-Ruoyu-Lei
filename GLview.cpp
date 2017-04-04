@@ -444,6 +444,9 @@ void GLview::truncate()
 void GLview::bilateralSmoothing()
 {
     cout << "implement bilateralSmoothing()\n";
+    if (mesh == NULL) return;
+    mesh->bilateral_smoothing();
+    update_mesh();
 }
 
 void GLview::meshSimplification()
