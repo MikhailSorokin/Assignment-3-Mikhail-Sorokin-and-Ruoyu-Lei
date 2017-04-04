@@ -124,7 +124,7 @@ struct Mesh {
     void inflate(float factor);
     void random_noise(float factor);
     void smooth();
-    void sharpen(float factor);
+    void sharpen();
     void split_faces();
     void split_long_edges();
     void loop_subdivision();

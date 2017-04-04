@@ -248,7 +248,7 @@ void Mesh::smooth() {
     }
 }
 
-void Mesh::sharpen(float factor){
+void Mesh::sharpen(){
     /*
         For every original vertex v
 
@@ -258,7 +258,7 @@ void Mesh::sharpen(float factor){
         4. d`` = - d`
         5. v` = v + d`` * esp (need to figure out what a proper esp is)
     */
-
+    float factor = 0.05;
     compute_average_edge_lengths();
 
     // 1. store g's in this vector
@@ -567,7 +567,7 @@ void Mesh::split_long_edges(){
 
         for (Mesh_Edge& edge : long_edges) {
             Mesh_Vertex mid = get_midpoint(vertices[edge.startVertexID].position, vertices[edge.endVertexID].position);
-            cout<<"here1\n";
+            cout<<"1.1\n";
             // map edge with vertex index
             int index = vertices.size();
             midpoints[edge] = index;
@@ -575,15 +575,19 @@ void Mesh::split_long_edges(){
             // update edges in midpoint
             Mesh_Edge e1(index,edge.startVertexID);
             Mesh_Edge e2(index,edge.endVertexID);
-            cout<<"here2\n";
             mid.edges.push_back(e1);
+            cout<<"1.3\n";
             mid.edges.push_back(e2);
+            cout<<"1.4\n";
 
             // update edges in 2 original vertices
             // first
             int removal = -1;
+            cout<<"1.2\n";
             for (int i = 0; i < vertices[edge.startVertexID].edges.size(); i++) {
+                cout<<"1.3\n";
                 if (vertices[edge.startVertexID].edges[i] == edge) {
+                    cout<<"1.4\n";
                     removal = i;
                 }
             }
@@ -601,6 +605,8 @@ void Mesh::split_long_edges(){
             vertices[edge.endVertexID].edges.erase(vertices[edge.endVertexID].edges.begin() + removal);
             vertices[edge.endVertexID].edges.push_back(e2);
             cout<<"after second "<<"removal="<<removal<< "\n";
+
+
             // push midpoint into vertices
             vertices.push_back(mid);
         }
@@ -631,6 +637,7 @@ void Mesh::split_long_edges(){
                 Mesh_Edge mt (index,c);
                 vertices[index].edges.push_back(mt);
                 vertices[c].edges.push_back(mt);
+                cout<<"if 1\n";
             } else if (midpoints.find(e2) != midpoints.end()) {
                 index = midpoints[e2];
                 Mesh_Face nf1 (index,a,b);
@@ -643,6 +650,7 @@ void Mesh::split_long_edges(){
                 Mesh_Edge mt (index,b);
                 vertices[index].edges.push_back(mt);
                 vertices[b].edges.push_back(mt);
+                cout<<"if 2\n";
             } else if (midpoints.find(e3) != midpoints.end()) {
                 index = midpoints[e3];
                 Mesh_Face nf1 (index,a,b);
@@ -655,6 +663,7 @@ void Mesh::split_long_edges(){
                 Mesh_Edge mt (index,a);
                 vertices[index].edges.push_back(mt);
                 vertices[a].edges.push_back(mt);
+                cout<<"if 3\n";
             } else {
                 cout<<"this should not happen!\n";
             }   

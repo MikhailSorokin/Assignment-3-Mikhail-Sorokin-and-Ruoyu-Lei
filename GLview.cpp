@@ -421,18 +421,8 @@ void GLview::sharpen()
 {
     cout << "implement sharpen()\n";
 
-    // popup dialog box to get user input
-    bool ok;
-    double factor = QInputDialog::getDouble(this, tr("QInputDialog::getDouble()"),tr("Factor:"), 0, numeric_limits<double>::min(), numeric_limits<double>::max(), 2, &ok);
-    if (!ok) {
-        // warning message to notify user of bad input
-        QMessageBox::information(this, tr("Application Name"), tr("Input value not in acceptable range. Please try a different value.") );
-        return;
-    }
-    cout << factor << "\n";
-
     if(mesh == NULL) return;
-    mesh->sharpen(factor);
+    mesh->sharpen();
     update_mesh();
 }
 
