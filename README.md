@@ -67,11 +67,12 @@ struct Mesh {
 }
 ``` 
 
-This section is used in Warps, and all of the other methods below. Thus, they will be discussed further there.
+This section is used in Warps, and all of the other methods below. Thus, their uses will be discussed further there.
 
 # Warps
 
-Inflate was implemented using [insert here]
+Inflate was implemented using the average length of edges and the normals to move each vertex
+up by that amount.
 Inflate BEFORE:
 ![foo](img_before/inflate.jpg)
 
@@ -84,7 +85,7 @@ inflate 6.0
 ``` 
 ![foo](img_after/inflate.jpg)
 
-Random Noise was implemented using [insert here]
+Random Noise was implemented using a random seed for the factors and every vertex is also moved in a random direction by the normal values.
 Random Noise BEFORE:
 ![foo](img_before/random_noise.jpg)
 
@@ -97,7 +98,9 @@ Random Noise 3.0
 
 # Smooth
 
-Smooth was implemented using [insert here]
+Smooth was implemented using the calculated normals of the vertices, in which
+every vertex was shifted by a position relative to its own normal vector in the 
+direction opposite of the inflation method.
 Smooth BEFORE:
 ![foo](img_before/smooth.jpg)
 
@@ -107,19 +110,43 @@ Smooth AFTER on Car.obj:
 
 # Sharpen
 
-TO BE DONE
+Sharpen was implemented using [insert here]
+Sharpen BEFORE:
+![foo](img_before/sharpen.jpg)
+
+Sharpen AFTER on Lion.obj:
+
+![foo](img_after/sharpen.jpg)
 
 # Split
 
-TO BE DONE
+Split was implemented using [insert here]
+Split BEFORE:
+![foo](img_before/split.jpg)
+
+Split AFTER on Lion.obj:
+
+![foo](img_after/split.jpg)
 
 # Collapse
 
-TO BE DONE
+Collapse was implemented using [insert here]
+Collapse BEFORE:
+![foo](img_before/collapse.jpg)
+
+Split AFTER on Lion.obj:
+
+![foo](img_after/collapse.jpg)
 
 # Subdiv
 
-TO BE DONE
+Subdivision was implemented using the split_faces method.
+Subdivision BEFORE:
+![foo](img_before/subdivision.jpg)
+
+Subdivision AFTER on Lion.obj:
+
+![foo](img_after/subdivision.jpg)
 
 # BONUS
 
