@@ -82,7 +82,6 @@ private slots:
     void crop();
     void bilateralSmoothing();
     void meshSimplification();
-
 };
 
 #endif
