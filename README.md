@@ -9,7 +9,7 @@ Programming Assignment 3: Mesh Processing
 3. [Smooth](#smooth)
 4. [Sharpen](#sharpen)
 5. [Split faces](#split)
-6. [Collapse short edges](#collapse)
+6. [Split long edges](#splitlong)
 7. [Subdivision](#subdiv)
 8. [BONUS](#bonus)
 
@@ -110,7 +110,26 @@ Smooth AFTER on Car.obj:
 
 # Sharpen
 
-Sharpen was implemented using [insert here]
+Sharpen was implemented using a similar approch as smooth.
+
+To find the sharpend position v` for every vertex v, we take the following steps:
+
+1. find vertex g as if we run smooth on v
+
+2. get d = g - v
+        
+3. get d` = d / ||d||. d divided by its norm
+        
+4. get d`` = - d`. Reverse the direction of d`.
+        
+5. v` = v + d`` * esp. Epsilon is a factor that determines "how far" we want to go on the direction of d``
+
+In regards to epsilon, we figured out that there is not a universal one that works perfectly well on very mesh. Instead, the value the epsilon depends on the nature of the mesh.
+
+For some rounded meshes, even a large epsilon wouldn't affect it too much. For example, eps ∈ [0.05, 0.2]
+
+For some very sharp meshes, we have to use a relatively smaller epsilon to not destroy the overall shape of the original mesh. eps ∈ [0.03, 0.07]
+
 Sharpen BEFORE:
 ![foo](img_before/sharpen.jpg)
 
@@ -128,19 +147,41 @@ Split AFTER on Lion.obj:
 
 ![foo](img_after/split.jpg)
 
-# Collapse
+# Splitlong
 
-Collapse was implemented using [insert here]
-Collapse BEFORE:
+Split long edges was implemented using the following steps:
+
+1. Get the average edge length and time 4/3. This is the threshold.
+
+2. Run a helper function to determine if there is any edge in the mesh that is long that the threshold. If there is any, then: 
+
+3. Create midpoint vertices on those long edges. Connect the newly created vertex with the start and end point of the edge, and connect the two points on the edge with the midpoint vertex too.
+
+4. Go through all faces that have long edges (we keep track of them when we run the check in step 2) and connect the midpoint vertex with the thrid point in the face and vice versa.
+
+5. Create 2 new faces and remove the original face.
+
+6. Check again if there's long edges in the mesh. If there is any, start from step 3 all over again. Otherwise, the function is finished.
+
+Split long edges BEFORE:
 ![foo](img_before/collapse.jpg)
 
-Split AFTER on Lion.obj:
+Split long edgeson AFTER Lion.obj:
 
 ![foo](img_after/collapse.jpg)
 
 # Subdiv
 
 Subdivision was implemented using the split_faces method.
+
+Loop subdivision is implemented with the help of split_faces function. 
+It first run the split_faces and then update the position of all vertices.
+
+For all even vertices, namely vertices whose indices range from 0 to the original size of the vertices vector - 1, use the even weights.
+For all odd vertices, namely vertices whose indices range from the original size of the vertices vector to the new size of the vertices vector, use the odd weights.
+
+After loop subdivision, the topology remains the same but the geometry is different since the positions of vertices have been updated.
+
 Subdivision BEFORE:
 ![foo](img_before/subdivision.jpg)
 
