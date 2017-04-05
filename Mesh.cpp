@@ -302,15 +302,12 @@ void Mesh::sharpen(float factor){
     }
 }
 
-int Mesh::check_and_add(map<Mesh_Edge*,Mesh_Vertex*>& edgeToMidpointMap, vector<Mesh_Edge>& newEdges, Mesh_Edge* midpointEdge, Mesh_Vertex* midpoint) {
+int Mesh::check_and_add(map<Mesh_Edge*,Mesh_Vertex*>& edgeToMidpointMap, Mesh_Edge* midpointEdge, Mesh_Vertex* midpoint) {
     if (edgeToMidpointMap.find(midpointEdge) == edgeToMidpointMap.end()) {
         edgeToMidpointMap[midpointEdge] = midpoint;
         vertices.push_back(*midpoint);
         vertices[midpointEdge->startVertexID].edges.push_back(*midpointEdge);
         vertices[midpointEdge->endVertexID].edges.push_back(*midpointEdge);
-        newEdges.push_back(*midpointEdge);
-
-        cout << "AGH" << endl;
 
         return vertices.size() - 1;
     }
@@ -321,26 +318,6 @@ int Mesh::check_and_add(map<Mesh_Edge*,Mesh_Vertex*>& edgeToMidpointMap, vector<
 Mesh_Vertex* Mesh::get_midpoint_vertex(QVector3D a, QVector3D b) {
     Mesh_Vertex* mid = new Mesh_Vertex((a.x() + b.x())/2, (a.y() + b.y())/2, (a.z() + b.z())/2);
     return mid;
-}
-
-void Mesh::add_edges(int start, int end, int index, string key, unordered_map<string,int>& h_edges, vector<vector<Mesh_Edge>>& n_edges) {
-    // string key = start < end ? to_string(start) + "," + to_string(end) : to_string(end) + "," + to_string(start);
-    auto f = h_edges.find(key);
-
-    if (f == h_edges.end()) {
-        // it's a new edge
-        Mesh_Edge e1 = Mesh_Edge(start,index);
-        Mesh_Edge e2 = Mesh_Edge(index,end);
-
-        n_edges[start].push_back(e1);
-        n_edges[index].push_back(e1);
-
-        n_edges[end].push_back(e2);
-        n_edges[index].push_back(e2);
-
-        // put new vertex into h_edges
-        h_edges[key] = index;
-    }
 }
 
 void Mesh::split_faces(){
@@ -371,28 +348,27 @@ void Mesh::split_faces(){
         int new3 = vertices.size() + 2;
 
         //5. Get the midpoints between every vertex in current face.
-        vector<Mesh_Edge> newEdges;
 
         //Midpoints of OG 1 and 2
         auto midPoint1 = get_midpoint_vertex(vertices[og1].position, vertices[og2].position);
         Mesh_Edge* m11 = new Mesh_Edge(og1, new1);
         Mesh_Edge* m12 = new Mesh_Edge(og2, new1);
-        new1 = check_and_add(midEdgeToPoint, newEdges, m11, midPoint1);
-        check_and_add(midEdgeToPoint, newEdges, m12, midPoint1);
+        new1 = check_and_add(midEdgeToPoint, m11, midPoint1);
+        check_and_add(midEdgeToPoint, m12, midPoint1);
 
         //Midpoints of OG 1 and 3
         auto midPoint2 = get_midpoint_vertex(vertices[og1].position, vertices[og3].position);
         Mesh_Edge* m21 = new Mesh_Edge(og1, new2);
         Mesh_Edge* m22 = new Mesh_Edge(og3, new2);
-        new2 = check_and_add(midEdgeToPoint, newEdges, m21, midPoint2);
-        check_and_add(midEdgeToPoint, newEdges, m22, midPoint2);
+        new2 = check_and_add(midEdgeToPoint, m21, midPoint2);
+        check_and_add(midEdgeToPoint, m22, midPoint2);
 
         //Midpoints of OG 2 and 3
         auto midPoint3 = get_midpoint_vertex(vertices[og2].position, vertices[og3].position);
         Mesh_Edge* m31 = new Mesh_Edge(og2, new3);
         Mesh_Edge* m32 = new Mesh_Edge(og3, new3);
-        new3 = check_and_add(midEdgeToPoint, newEdges, m31, midPoint3);
-        check_and_add(midEdgeToPoint, newEdges, m32, midPoint3);
+        new3 = check_and_add(midEdgeToPoint, m31, midPoint3);
+        check_and_add(midEdgeToPoint, m32, midPoint3);
 
         //6. Connect all midpoints
 
@@ -430,8 +406,14 @@ void Mesh::split_faces(){
 
     faces = newFaces;
 
-    //TODO: Delete dynamically allocated stuff from memory
-    //for (auto& p : midEdgeToPoint) { delete p.first; delete p.second; }
+    //Delete dynamically allocated stuff from memory
+    for(map<Mesh_Edge*,Mesh_Vertex*>::iterator MapItor = midEdgeToPoint.begin(); MapItor != midEdgeToPoint.end(); ++MapItor)
+    {
+        Mesh_Edge* Key = (*MapItor).first;
+        delete Key;
+    }
+
+    midEdgeToPoint.clear();
 
     clock_t endtime = clock();
 
@@ -441,8 +423,157 @@ void Mesh::split_faces(){
 
 }
 
-void Mesh::split_long_edges(){
+float Mesh::getAvgLengthAllEdges() {
 
+    map<Mesh_Edge*,float> edgeToValueMap;
+
+    //1. Add values into the map
+    for (size_t iv = 0; iv < vertices.size(); iv++){
+
+        vector<Mesh_Edge> edgesAtVert = vertices[iv].edges;
+
+        for (Mesh_Edge& edge: edgesAtVert){
+            Mesh_Edge* allocatedEdge = new Mesh_Edge(edge.startVertexID, edge.endVertexID);
+            if (edgeToValueMap.find(allocatedEdge) == edgeToValueMap.end()) {
+                edgeToValueMap[allocatedEdge] = length(vertices[edge.endVertexID].position - vertices[edge.startVertexID].position);
+            }
+        }
+    }
+
+    float sumEdgeLengths = 0;
+    int size = 0;
+
+    //2. Calculate average edge length of ALL edges in edge map
+    map<Mesh_Edge*,float>::iterator it = edgeToValueMap.begin();
+
+    // Iterate over the map using Iterator till end.
+    while (it != edgeToValueMap.end())
+    {
+        // Accessing VALUE from element pointed by it.
+        float edgeLength = it->second;
+
+        sumEdgeLengths += edgeLength;
+        size++;
+
+        // Increment the Iterator to point to next entry
+        it++;
+    }
+
+    //Delete dynamically allocated stuff from memory
+    for(map<Mesh_Edge*,float>::iterator MapItor = edgeToValueMap.begin(); MapItor != edgeToValueMap.end(); ++MapItor)
+    {
+        Mesh_Edge* Key = (*MapItor).first;
+        delete Key;
+    }
+
+    edgeToValueMap.clear();
+
+    return sumEdgeLengths / size;
+}
+
+void Mesh::DeleteFace(Mesh_Face* face) {
+    for (int i = 0; i < faces.size(); i++) {
+        Mesh_Face* thisFace = &(faces[i]);
+        if (thisFace == face) {
+            faces[i] = faces.back();
+            faces.pop_back();
+            break;
+        }
+    }
+
+    delete face;
+}
+
+void Mesh::DeleteVertex(Mesh_Vertex* vertex) {
+    for (int i = 0; i < vertices.size(); i++) {
+        Mesh_Vertex* thisVertex = &(vertices[i]);
+        if (thisVertex == vertex) {
+            vertices[i] = vertices.back();
+            vertices.pop_back();
+            break;
+        }
+    }
+
+    delete vertex;
+}
+
+void Mesh::collapse_short_edges() {
+
+    compute_average_edge_lengths();
+    compute_vertex_normals();
+
+    float allAvgEdgeLength = getAvgLengthAllEdges();
+
+    cout << allAvgEdgeLength << endl;
+
+
+    int shortEdgeCount = 0;
+
+    do {
+        shortEdgeCount = 0;
+
+        Mesh_Vertex* edgeVertex1 = nullptr;
+        Mesh_Vertex* edgeVertex2 = nullptr;
+
+        int ev1Ind, ev2Ind;
+
+        /******This is where the real stuff happens****/
+        for (Mesh_Vertex& mv : vertices) {
+            if (shortEdgeCount == 0)
+                break;
+
+            for (Mesh_Edge& edge: mv.edges) {
+                if (length(vertices[edge.endVertexID].position - vertices[edge.startVertexID].position)
+                        < 4/5 * allAvgEdgeLength) {
+                    edgeVertex1 = new Mesh_Vertex(vertices[edge.startVertexID].position.x(),
+                            vertices[edge.startVertexID].position.y(),
+                            vertices[edge.startVertexID].position.z());
+                    edgeVertex2 = new Mesh_Vertex(vertices[edge.endVertexID].position.x(),
+                            vertices[edge.endVertexID].position.y(),
+                            vertices[edge.endVertexID].position.z());
+                    ev1Ind = edge.startVertexID;
+                    ev2Ind = edge.endVertexID;
+
+                    shortEdgeCount++;
+                    break;
+                }
+            }
+        }
+
+        auto midPoint = get_midpoint_vertex(edgeVertex1->position, edgeVertex2->position);
+        edgeVertex1->position = midPoint->position;
+
+        //Update faces
+        vector<Mesh_Face> newFaces;
+
+        vector<Mesh_Face> adjFaces = facesAdjVertex[ev2Ind];
+        for (int afi = 0; afi < adjFaces.size(); afi++) {
+            Mesh_Face* mf = &(adjFaces[afi]);
+
+            if (ev1Ind == mf->vert[0] || ev1Ind == mf->vert[1]
+                    || ev1Ind == mf->vert[2]) {
+                DeleteFace(mf);
+            }
+
+            DeleteVertex(edgeVertex2);
+
+            //Clear edges and update with new ones
+            for (int vi = 0; vi < vertices.size(); vi++) {
+                vertices[vi].edges.clear();
+            }
+
+            for (int fi = 0; fi < faces.size(); fi++) {
+                Mesh_Face* face = &(faces[fi]);
+
+                for (int vi = 0; vi < face->vert.size(); vi++) {
+                    Mesh_Vertex* v2 = face->vert[vi];
+                }
+            }
+
+
+        }
+
+    } while (shortEdgeCount != 0);
 }
 
 void Mesh::storeVBO() {

@@ -16,6 +16,13 @@ struct Mesh_Face {
     Mesh_Face(long v0, long v1, long v2) {
         vert[0] = v0; vert[1] = v1; vert[2] = v2;
     }
+
+    bool operator==(const Mesh_Face &other) const
+    { return (vert[0] == other.vert[0]
+            && vert[1] == other.vert[1]
+            && vert[2] == other.vert[2]);
+    }
+
     long vert[3]; // indices (in the vertex array) of all vertices (mesh_vertex)
     QVector3D faceNormal;
 };
@@ -80,6 +87,7 @@ struct Mesh {
     vector<Mesh_Face> faces; // Mesh faces.
     vector<Mesh_Vertex> vertices; //Mesh Vertices
     vector<vector<Mesh_Face>> facesAdjVertex; //Faces connected to a vertex
+    vector<vector<Mesh_Face>> facesAdjEdges;
 
     QOpenGLBuffer vertexBuffer, baryBuffer;
 
@@ -96,8 +104,10 @@ struct Mesh {
     float length(QVector3D edgeVector);
     float gaussian(float x, float y, float z, float u, float v, float w, float sigma);
     Mesh_Vertex* get_midpoint_vertex(QVector3D a, QVector3D b);
-    int check_and_add(map<Mesh_Edge*,Mesh_Vertex*>& edgeToMidpointMap, vector<Mesh_Edge>& newEdges, Mesh_Edge* midpointEdge, Mesh_Vertex* midpoint);
-    void add_edges(int start, int end, int index, string key, unordered_map<string,int>& h_edges, vector<vector<Mesh_Edge>>& n_edges);
+    int check_and_add(map<Mesh_Edge*,Mesh_Vertex*>& edgeToMidpointMap, Mesh_Edge* midpointEdge, Mesh_Vertex* midpoint);
+    void DeleteFace(Mesh_Face* face);
+    void DeleteVertex(Mesh_Vertex* vertex);
+    float getAvgLengthAllEdges();
 
     //MUST IMPLEMENT
     void compute_average_edge_lengths();
@@ -108,7 +118,7 @@ struct Mesh {
     void smooth();
     void sharpen(float factor);
     void split_faces();
-    void split_long_edges();
+    void collapse_short_edges();
 };
 
 #endif // __MESH_HPP__
