@@ -764,7 +764,6 @@ void Mesh::loop_subdivision() {
     for (int i = even_v_len; i < vertices.size(); i++) {
         // 3.1 get two nearest vertices
         vector<int> v1v2;
-        v1v2.clear();
 
         for (Mesh_Edge& e : vertices[i].edges) {
             if (e.endVertexID < even_v_len) {
@@ -794,6 +793,8 @@ void Mesh::loop_subdivision() {
         } else {
             // debug_print("more than 2? this should not happen");
         }
+        intersec.clear();
+
         c++;
     }
     cout<<"odd vertices processed. Have "<<newVec.size()<<" in newVec now\n";
