@@ -61,14 +61,15 @@ struct Mesh_Edge {
     }
 
     bool operator==(const Mesh_Edge &other) const
-      { if (startVertexID == other.startVertexID && endVertexID == other.endVertexID) {
-        return true;
-      } else if (startVertexID == other.endVertexID && endVertexID == other.startVertexID) {
-        return true;
-      } else {
-        return false;
-      }
-      }
+    {
+        if (startVertexID == other.startVertexID && endVertexID == other.endVertexID) {
+            return true;
+        } else if (startVertexID == other.endVertexID && endVertexID == other.startVertexID) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 
     int startVertexID;
     int endVertexID;
@@ -79,6 +80,18 @@ struct Mesh_Vertex {
 
     Mesh_Vertex(float x, float y, float z) {
         position = QVector3D(x,y,z);
+    }
+
+    bool operator==(const Mesh_Vertex &other) const
+    {
+        return (position.x() == other.position.x() && position.y() == other.position.y()
+                && position.z() == other.position.z());
+    }
+
+    bool operator < (const Mesh_Vertex &other) const
+    {
+        return (position.x() < other.position.x() && position.y() < other.position.y()
+                && position.z() < other.position.z());
     }
 
     QVector3D position;
@@ -107,8 +120,7 @@ struct Mesh {
     void debug_print(string str);
     float length(QVector3D edgeVector);
     float gaussian(float x, float y, float z, float u, float v, float w, float sigma);
-    Mesh_Vertex* get_midpoint_vertex(QVector3D a, QVector3D b);
-    int check_and_add(map<Mesh_Edge,int>& edgeToMidpointMap, vector<Mesh_Edge>& newEdges, Mesh_Edge midpointEdge, Mesh_Vertex* midpoint);
+    int check_and_add(map<Mesh_Edge,int>& edgeToMidpointMap, Mesh_Edge midpointEdge, Mesh_Vertex midpoint);
     vector<int> intersected_face(vector<Mesh_Face> f1,vector<Mesh_Face> f2, int v1 ,int v2);
     float area(Mesh_Face face);
     QVector3D centroid(Mesh_Face face);
