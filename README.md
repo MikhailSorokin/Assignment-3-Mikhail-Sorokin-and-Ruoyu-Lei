@@ -110,7 +110,6 @@ Smooth AFTER on Car.obj:
 
 # Sharpen
 
-Sharpen was implemented using [insert here]
 Sharpen was implemented using a similar approch as smooth.
 
 To find the sharpend position v` for every vertex v, we take the following steps:
@@ -121,9 +120,9 @@ To find the sharpend position v` for every vertex v, we take the following steps
         
 3. get d` = d / ||d||. d divided by its norm
         
-4. get d`` = - d`. Reverse the direction of d`.
+4. get d`` = - d` Reverse the direction of d`.
         
-5. v` = v + d`` * esp. Epsilon is a factor that determines "how far" we want to go on the direction of d``
+5. v` = v + d`` * esp Epsilon is a factor that determines "how far" we want to go on the direction of d``
 
 In regards to epsilon, we figured out that there is not a universal one that works perfectly well on very mesh. Instead, the value the epsilon depends on the nature of the mesh.
 
@@ -136,11 +135,14 @@ Sharpen BEFORE:
 
 Sharpen AFTER on Lion.obj:
 
+This effect is produced by using the above algorithm with epsilon set to 0.05, since the mesh is not very rounded.
+
 ![foo](img_after/sharpen.jpg)
 
 # Split
 
-Split Faces was implemented using [insert here]
+Split faces splits a face into 4 subfaces by connecting 3 newly created midpoints with each other and with the original 3 vertices nearest to each of them. Notice in the process we also need to substitute all old faces with new ones and all old edges with new ones. We also need to make sure that the topology is updated correctly, so that it does not just "trick" the program to recreate a mesh that looks like the desired one, but actually is a brand new mesh with new geometry and topology.
+
 Split Faces BEFORE:
 ![foo](img_before/split.jpg)
 
@@ -154,7 +156,6 @@ Split_Faces multiple times AFTER on acesjustforroomshow.obj to really see the sp
 
 # Long
 
-Long split edges was implemented using [insert here]
 Split long edges was implemented using the following steps:
 
 1. Get the average edge length and time 4/3. This is the threshold.
