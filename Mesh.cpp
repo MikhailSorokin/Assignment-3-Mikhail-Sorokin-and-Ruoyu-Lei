@@ -563,7 +563,6 @@ void Mesh::split_long_edges(){
             // and connect midpoint with the third point
             int index = -1;
             if (midpoints.find(e1) != midpoints.end()) {
-                                                cout << "FINAL POINT HERE: 1" << endl;
                 index = midpoints[e1];
                 Mesh_Face nf1 (index,a,c);
                 Mesh_Face nf2 (index,b,c);
@@ -589,7 +588,6 @@ void Mesh::split_long_edges(){
                 vertices[index].edges.push_back(mt);
                 vertices[b].edges.push_back(mt);
             } else if (midpoints.find(e3) != midpoints.end()) {
-                cout << "FINAL POINT HERE: 3" << endl;
                 index = midpoints[e3];
                 Mesh_Face nf1 (index,a,b);
                 Mesh_Face nf2 (index,a,c);
@@ -605,8 +603,6 @@ void Mesh::split_long_edges(){
                 cout<< "this should not happen!" << endl;
             }   
         }
-
-        cout << "Crash point at comment 3" << endl;
 
         for (Mesh_Face& gf : goodFaces) {
             newFaces.push_back(gf);
