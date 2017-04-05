@@ -8,8 +8,8 @@ Programming Assignment 3: Mesh Processing
 2. [Warps](#warps)
 3. [Smooth](#smooth)
 4. [Sharpen](#sharpen)
-5. [Split faces](#split)
-6. [Collapse short edges](#collapse)
+5. [Split Faces](#split)
+6. [Split Long Edges](#long)
 7. [Subdivision](#subdiv)
 8. [BONUS](#bonus)
 
@@ -67,11 +67,12 @@ struct Mesh {
 }
 ``` 
 
-This section is used in Warps, and all of the other methods below. Thus, they will be discussed further there.
+This section is used in Warps, and all of the other methods below. Thus, their uses will be discussed further there.
 
 # Warps
 
-Inflate was implemented using [insert here]
+Inflate was implemented using the average length of edges and the normals to move each vertex
+up by that amount.
 Inflate BEFORE:
 ![foo](img_before/inflate.jpg)
 
@@ -84,7 +85,7 @@ inflate 6.0
 ``` 
 ![foo](img_after/inflate.jpg)
 
-Random Noise was implemented using [insert here]
+Random Noise was implemented using a random seed for the factors and every vertex is also moved in a random direction by the normal values.
 Random Noise BEFORE:
 ![foo](img_before/random_noise.jpg)
 
@@ -97,7 +98,9 @@ Random Noise 3.0
 
 # Smooth
 
-Smooth was implemented using [insert here]
+Smooth was implemented using the calculated normals of the vertices, in which
+every vertex was shifted by a position relative to its own normal vector in the 
+direction opposite of the inflation method.
 Smooth BEFORE:
 ![foo](img_before/smooth.jpg)
 
@@ -107,19 +110,47 @@ Smooth AFTER on Car.obj:
 
 # Sharpen
 
-TO BE DONE
+Sharpen was implemented using [insert here]
+Sharpen BEFORE:
+![foo](img_before/sharpen.jpg)
+
+Sharpen AFTER on Lion.obj:
+
+![foo](img_after/sharpen.jpg)
 
 # Split
 
-TO BE DONE
+Split Faces was implemented using [insert here]
+Split Faces BEFORE:
+![foo](img_before/split.jpg)
 
-# Collapse
+Split_Faces AFTER on acesjustforroomshow.obj:
 
-TO BE DONE
+![foo](img_after/split.jpg)
+
+Split_Faces multiple times AFTER on acesjustforroomshow.obj to really see the splitting happening dramatically:
+
+![foo](img_after/split_multiple.jpg)
+
+# Long
+
+Long split edges was implemented using [insert here]
+Long split edges BEFORE:
+![foo](img_before/long.jpg)
+
+Long split edges AFTER on Lion.obj:
+
+![foo](img_after/long.jpg)
 
 # Subdiv
 
-TO BE DONE
+Subdivision was implemented using the split_faces method.
+Subdivision BEFORE:
+![foo](img_before/subdiv.jpg)
+
+Subdivision AFTER on Lion.obj:
+
+![foo](img_after/subdiv.jpg)
 
 # BONUS
 

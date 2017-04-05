@@ -8,8 +8,8 @@ Programming Assignment 3: Mesh Processing
 2. [Warps](#warps)
 3. [Smooth](#smooth)
 4. [Sharpen](#sharpen)
-5. [Split faces](#split)
-6. [Collapse short edges](#collapse)
+5. [Split Faces](#split)
+6. [Split Long Edges](#long)
 7. [Subdivision](#subdiv)
 8. [BONUS](#bonus)
 
@@ -120,33 +120,37 @@ Sharpen AFTER on Lion.obj:
 
 # Split
 
-Split was implemented using [insert here]
-Split BEFORE:
+Split Faces was implemented using [insert here]
+Split Faces BEFORE:
 ![foo](img_before/split.jpg)
 
-Split AFTER on Lion.obj:
+Split_Faces AFTER on acesjustforroomshow.obj:
 
 ![foo](img_after/split.jpg)
 
-# Collapse
+Split_Faces multiple times AFTER on acesjustforroomshow.obj to really see the splitting happening dramatically:
 
-Collapse was implemented using [insert here]
-Collapse BEFORE:
-![foo](img_before/collapse.jpg)
+![foo](img_after/split_multiple.jpg)
 
-Split AFTER on Lion.obj:
+# Long
 
-![foo](img_after/collapse.jpg)
+Long split edges was implemented using [insert here]
+Long split edges BEFORE:
+![foo](img_before/long.jpg)
+
+Long split edges AFTER on Lion.obj:
+
+![foo](img_after/long.jpg)
 
 # Subdiv
 
 Subdivision was implemented using the split_faces method.
 Subdivision BEFORE:
-![foo](img_before/subdivision.jpg)
+![foo](img_before/subdiv.jpg)
 
 Subdivision AFTER on Lion.obj:
 
-![foo](img_after/subdivision.jpg)
+![foo](img_after/subdiv.jpg)
 
 # BONUS
 
